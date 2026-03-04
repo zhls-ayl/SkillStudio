@@ -63,4 +63,43 @@ final class SkillRepositoryTests: XCTestCase {
         let repo = try JSONDecoder().decode(SkillRepository.self, from: data)
         XCTAssertTrue(repo.syncOnLaunch)
     }
+
+    func testEffectiveLastSyncedAtUsesPersistedValue() {
+        let persisted = Date(timeIntervalSince1970: 1_700_000_000)
+        let repo = SkillRepository(
+            id: UUID(),
+            name: "repo",
+            repoURL: "https://example.com/org/repo.git",
+            authType: .httpsToken,
+            platform: .github,
+            isEnabled: true,
+            lastSyncedAt: persisted,
+            localSlug: "non-existent-\(UUID().uuidString)",
+            httpUsername: nil,
+            credentialKey: nil,
+            scanHiddenPaths: false,
+            syncOnLaunch: false
+        )
+
+        XCTAssertEqual(repo.effectiveLastSyncedAt, persisted)
+    }
+
+    func testEffectiveLastSyncedAtIsNilWhenNoPersistedValueAndNotCloned() {
+        let repo = SkillRepository(
+            id: UUID(),
+            name: "repo",
+            repoURL: "https://example.com/org/repo.git",
+            authType: .httpsToken,
+            platform: .github,
+            isEnabled: true,
+            lastSyncedAt: nil,
+            localSlug: "non-existent-\(UUID().uuidString)",
+            httpUsername: nil,
+            credentialKey: nil,
+            scanHiddenPaths: false,
+            syncOnLaunch: false
+        )
+
+        XCTAssertNil(repo.effectiveLastSyncedAt)
+    }
 }

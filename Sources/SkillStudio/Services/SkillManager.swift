@@ -279,13 +279,21 @@ final class SkillManager {
 
     /// Toggle skill installation status on specified Agent
     ///
-    /// Protection logic: if inherited installation (isInherited), return directly without any operation
-    /// This is Service layer defense - even if UI layer disables Toggle, it ensures inherited installations won't be mistakenly operated
+    /// Inherited-installation handling:
+    /// - If this Agent sees the skill via another Agent's readable directory (e.g. Copilot via Claude),
+    ///   toggling OFF should remove the source Agent's direct symlink.
+    /// - This makes the UX deterministic: first OFF removes direct install, second OFF removes inherited source.
+    /// - Special case: when inheritedFrom == agent (for example Codex reading ~/.agents/skills directly),
+    ///   there is no separate source symlink to remove, so we safely no-op.
     func toggleAssignment(_ skill: Skill, agent: AgentType) async throws {
         let installation = skill.installations.first { $0.agentType == agent }
 
-        // Protection: inherited installations cannot be toggled (inherited installations are managed by source Agent)
         if let installation, installation.isInherited {
+            // For inherited installs, try to remove the source Agent assignment
+            // so user can fully turn this Agent "OFF" from the detail panel.
+            if let sourceAgent = installation.inheritedFrom, sourceAgent != agent {
+                try await unassignSkill(skill, from: sourceAgent)
+            }
             return
         }
 

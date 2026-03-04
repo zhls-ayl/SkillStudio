@@ -222,7 +222,7 @@ This is a test skill.
 EOF
 
 # 2. 启动 SkillStudio
-swift run SkillStudio
+./run
 
 # 3. 验证以下内容：
 #    - Sidebar: Copilot CLI 的 badge 包含继承 skill

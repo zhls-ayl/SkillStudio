@@ -33,7 +33,9 @@ let package = Package(
             // .process optimizes based on file type (e.g., PNG compression), .copy copies as is
             // .icns files need to use .copy to preserve original format, as SPM doesn't recognize .icns type
             resources: [
-                .copy("Resources/AppIcon.icns")
+                .copy("Resources/AppIcon.icns"),
+                .copy("Resources/AgentIcons"),
+                .process("Resources/Assets.xcassets")
             ]
         ),
 

@@ -3,7 +3,8 @@ import SwiftUI
 /// AgentToggleView displays installation status toggles for skill on each Agent (F06)
 ///
 /// One Toggle per Agent (switch), creates symlink when on, deletes when off
-/// Toggle for inherited installation (isInherited) shows as ON but disabled, with source hint
+/// Inherited installation still shows source hint; user can toggle it off to remove source assignment
+/// (except self-inherited cases such as Codex reading ~/.agents/skills directly)
 struct AgentToggleView: View {
 
     let skill: Skill
@@ -18,12 +19,14 @@ struct AgentToggleView: View {
                 let isInstalled = installation != nil
                 /// Check if this is an inherited installation (from another Agent's directory)
                 let isInherited = installation?.isInherited ?? false
+                /// Some inheritance is "self-sourced" (e.g. Codex reading ~/.agents/skills directly).
+                /// In this case there is no independent source Agent symlink to remove, so keep toggle disabled.
+                let isSelfInherited = isInherited && installation?.inheritedFrom == agentType
                 let agent = skillManager.agents.first { $0.type == agentType }
                 let isAgentAvailable = agent?.isInstalled == true || agent?.configDirectoryExists == true
 
                 HStack {
-                    Image(systemName: agentType.iconName)
-                        .foregroundStyle(Constants.AgentColors.color(for: agentType))
+                    AgentIconView(agentType: agentType, size: 16)
                         .frame(width: 20)
 
                     Text(agentType.displayName)
@@ -45,7 +48,8 @@ struct AgentToggleView: View {
                     }
 
                     // Toggle is macOS switch control (similar to Android's Switch)
-                    // When inherited: Toggle shows as ON but disabled, preventing user mistakes
+                    // Inherited installations remain operable so users can continue turning OFF
+                    // from direct-install state to inherited-source state in a second step.
                     Toggle("", isOn: Binding(
                         get: { isInstalled },
                         set: { _ in
@@ -57,9 +61,9 @@ struct AgentToggleView: View {
                     .toggleStyle(.switch)
                     .labelsHidden()
                     // disabled conditions:
-                    // - Inherited installation cannot be operated (need to modify at source Agent)
+                    // - Self-inherited installation has no removable source symlink (e.g. Codex shared directory)
                     // - Agent not installed and this skill not installed
-                    .disabled(isInherited || (!isAgentAvailable && !isInstalled))
+                    .disabled(isSelfInherited || (!isAgentAvailable && !isInstalled))
                 }
                 .padding(.vertical, 2)
             }

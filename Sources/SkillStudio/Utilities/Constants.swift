@@ -47,4 +47,8 @@ enum Constants {
 
     /// Config file that stores the list of user-configured custom repositories
     static let skillReposConfigPath = "~/.agents/.skillstudio-repos.json"
+
+    /// UserDefaults key for app appearance preference.
+    /// Stored as `AppThemeMode.rawValue` (`system` / `light` / `dark`).
+    static let appThemeModeKey = "appThemeMode"
 }

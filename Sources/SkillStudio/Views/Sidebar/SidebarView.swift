@@ -1,4 +1,5 @@
 import SwiftUI
+import Dispatch
 
 /// Sidebar navigation item enum
 ///
@@ -127,8 +128,7 @@ struct SidebarView: View {
                         Label {
                             Text(agentType.displayName)
                         } icon: {
-                            Image(systemName: agentType.iconName)
-                                .foregroundStyle(Constants.AgentColors.color(for: agentType))
+                            AgentIconView(agentType: agentType, size: 16)
                         }
                     }
                     .badge(skillManager.skills(for: agentType).count)
@@ -251,17 +251,22 @@ struct SidebarView: View {
         item: SidebarItem,
         @ViewBuilder label: () -> Label
     ) -> some View {
-        // Button ensures clicking always updates selection (List native selection is unreliable in some macOS versions)
-        Button { selection = item } label: { label() }
-            // .buttonStyle(.plain) removes button default styles (border, press effect, etc.)
-            .buttonStyle(.plain)
-            // .contentShape(Rectangle()) expands interaction area (click+hover) to entire row rectangle
-            // By default Button only responds to events in content (text/icon) area,
-            // row's blank area doesn't trigger .onHover, causing hover effect to only appear above text
-            // Similar to CSS pointer-events: all + width: 100%
+        // Keep row content as a plain view so List manages native selection behavior.
+        // Avoiding an inner Button here prevents synchronous selection mutation during
+        // NSTableView delegate callbacks, which can trigger reentrancy warnings.
+        label()
+            // Expand interaction area (click + hover) to the full row rectangle.
             .contentShape(Rectangle())
-            // .tag 关联选中值，让 List 知道这一行对应哪个 SidebarItem
+            // Associate this row with a concrete selection value for List(selection:).
             .tag(item)
+            // Explicitly set selection on tap, but defer to next run loop turn.
+            // DispatchQueue.main.async is used intentionally so the state write happens
+            // after the current AppKit table delegate call stack unwinds.
+            .onTapGesture {
+                DispatchQueue.main.async {
+                    selection = item
+                }
+            }
             // .onHover listens for mouse enter/leave events (macOS specific, similar to CSS :hover)
             // Closure parameter isHovering: Bool indicates if mouse is over element
             .onHover { isHovering in

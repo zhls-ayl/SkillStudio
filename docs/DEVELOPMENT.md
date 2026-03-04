@@ -148,7 +148,7 @@ swift build
 swift build -c release
 
 # 运行应用
-swift run SkillStudio
+./run    # 自动处理目录迁移后常见的 Swift 缓存问题
 
 # 清理构建产物（类似 go clean 或 mvn clean）
 swift package clean
@@ -622,7 +622,7 @@ xcrun notarytool submit SkillStudio.dmg --apple-id your@email.com --team-id XXXX
 xcrun stapler staple SkillStudio.dmg
 ```
 
-> **开发阶段**: 直接 `swift run` 或 Xcode 运行即可，不需要签名和公证。
+> **开发阶段**: 直接 `./run` 或 Xcode 运行即可，不需要签名和公证。
 
 ### Homebrew Cask（未来分发渠道）
 

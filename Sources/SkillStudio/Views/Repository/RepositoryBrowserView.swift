@@ -113,7 +113,7 @@ struct RepositoryBrowserView: View {
             }
 
             // Last synced timestamp
-            if let date = viewModel.repository.lastSyncedAt {
+            if let date = viewModel.repository.effectiveLastSyncedAt {
                 TimelineView(.periodic(from: .now, by: 60)) { context in
                     Text("Synced \(gitStyleRelativeTime(from: date, now: context.date))")
                         .font(.caption2)

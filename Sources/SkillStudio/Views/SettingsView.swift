@@ -30,8 +30,49 @@ struct SettingsView: View {
 
 /// General settings
 struct GeneralSettingsView: View {
+
+    /// Persisted appearance mode in UserDefaults.
+    ///
+    /// `@AppStorage` is a SwiftUI property wrapper that binds a value directly to UserDefaults:
+    /// - Reading this property fetches stored value automatically.
+    /// - Writing this property updates UserDefaults and triggers SwiftUI view refresh.
+    ///
+    /// This is similar to "state + persistence" combined in one declaration,
+    /// unlike Java/Go/Python where UI state and preferences are often wired manually.
+    @AppStorage(Constants.appThemeModeKey)
+    private var appThemeModeRawValue = AppThemeMode.system.rawValue
+
+    /// Bridge String storage to strongly typed `AppThemeMode` for Picker binding.
+    ///
+    /// Why a custom Binding is used:
+    /// - UserDefaults stores strings, but Picker works best with typed enum values.
+    /// - This conversion layer provides type safety and handles invalid stored values safely.
+    private var appThemeModeBinding: Binding<AppThemeMode> {
+        Binding(
+            get: {
+                // Fallback to `.system` if stored value is unknown/corrupted,
+                // preventing invalid preference data from breaking UI behavior.
+                AppThemeMode(rawValue: appThemeModeRawValue) ?? .system
+            },
+            set: { newMode in
+                appThemeModeRawValue = newMode.rawValue
+            }
+        )
+    }
+
     var body: some View {
         Form {
+            Section("Appearance") {
+                // Picker with .menu style renders as a standard macOS dropdown in Form.
+                // The selected enum case is persisted via appThemeModeBinding -> @AppStorage.
+                Picker("Theme", selection: appThemeModeBinding) {
+                    ForEach(AppThemeMode.allCases) { mode in
+                        Text(mode.displayName).tag(mode)
+                    }
+                }
+                .pickerStyle(.menu)
+            }
+
             Section("Paths") {
                 LabeledContent("Shared Skills") {
                     Text(Constants.sharedSkillsPath)

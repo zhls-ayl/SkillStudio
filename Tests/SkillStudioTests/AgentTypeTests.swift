@@ -22,6 +22,7 @@ final class AgentTypeTests: XCTestCase {
         XCTAssertEqual(agent.skillsDirectoryPath, "~/.gemini/antigravity/skills")
         XCTAssertEqual(agent.configDirectoryPath, "~/.gemini/antigravity")
         XCTAssertEqual(agent.iconName, "arrow.up.circle")
+        XCTAssertEqual(agent.iconResourceName, "antigravity")
         XCTAssertEqual(agent.brandColor, "indigo")
 
         // Antigravity does not read other agents' directories
@@ -41,6 +42,7 @@ final class AgentTypeTests: XCTestCase {
         XCTAssertEqual(agent.skillsDirectoryPath, "~/.cursor/skills")
         XCTAssertEqual(agent.configDirectoryPath, "~/.cursor")
         XCTAssertEqual(agent.iconName, "cursorarrow.rays")
+        XCTAssertEqual(agent.iconResourceName, "cursor")
         XCTAssertEqual(agent.brandColor, "cyan")
 
         // Cursor reads Claude Code's skills directory as an additional source
@@ -62,6 +64,7 @@ final class AgentTypeTests: XCTestCase {
         XCTAssertEqual(agent.skillsDirectoryPath, "~/.codex/skills")
         XCTAssertEqual(agent.configDirectoryPath, "~/.codex")
         XCTAssertEqual(agent.iconName, "terminal")
+        XCTAssertEqual(agent.iconResourceName, "codex")
         XCTAssertEqual(agent.brandColor, "green")
 
         // Codex also reads the shared canonical directory ~/.agents/skills/
@@ -83,6 +86,7 @@ final class AgentTypeTests: XCTestCase {
         XCTAssertEqual(agent.skillsDirectoryPath, "~/.kiro/skills")
         XCTAssertEqual(agent.configDirectoryPath, "~/.kiro")
         XCTAssertEqual(agent.iconName, "k.circle")
+        XCTAssertEqual(agent.iconResourceName, "kiro")
         XCTAssertEqual(agent.brandColor, "violet")
 
         // Kiro does not read other agents' directories
@@ -102,6 +106,7 @@ final class AgentTypeTests: XCTestCase {
         XCTAssertEqual(agent.skillsDirectoryPath, "~/.codebuddy/skills")
         XCTAssertEqual(agent.configDirectoryPath, "~/.codebuddy")
         XCTAssertEqual(agent.iconName, "c.circle")
+        XCTAssertEqual(agent.iconResourceName, "codebuddy")
         XCTAssertEqual(agent.brandColor, "pink")
 
         // CodeBuddy does not read other agents' directories
@@ -121,6 +126,7 @@ final class AgentTypeTests: XCTestCase {
         XCTAssertEqual(agent.skillsDirectoryPath, "~/.openclaw/skills")
         XCTAssertEqual(agent.configDirectoryPath, "~/.openclaw")
         XCTAssertEqual(agent.iconName, "o.circle")
+        XCTAssertEqual(agent.iconResourceName, "openclaw")
         XCTAssertEqual(agent.brandColor, "red")
 
         // OpenClaw does not read other agents' directories
@@ -141,6 +147,7 @@ final class AgentTypeTests: XCTestCase {
         XCTAssertEqual(agent.skillsDirectoryPath, "~/.trae/skills")
         XCTAssertEqual(agent.configDirectoryPath, "~/.trae")
         XCTAssertEqual(agent.iconName, "t.circle")
+        XCTAssertEqual(agent.iconResourceName, "trae")
         XCTAssertEqual(agent.brandColor, "brightGreen")
 
         // Trae does not read other agents' directories (standalone agent)
@@ -154,5 +161,26 @@ final class AgentTypeTests: XCTestCase {
     func testAllCasesCount() {
         // 11 agents: claudeCode, codex, geminiCLI, copilotCLI, openCode, antigravity, cursor, kiro, codeBuddy, openClaw, trae
         XCTAssertEqual(AgentType.allCases.count, 11)
+    }
+
+    /// Verify bundled SVG icon resource mapping for all agent types
+    func testIconResourceNameMapping() {
+        let expected: [AgentType: String] = [
+            .claudeCode: "claude",
+            .codex: "codex",
+            .geminiCLI: "gemini",
+            .copilotCLI: "githubcopilot",
+            .openCode: "opencode",
+            .antigravity: "antigravity",
+            .cursor: "cursor",
+            .kiro: "kiro",
+            .codeBuddy: "codebuddy",
+            .openClaw: "openclaw",
+            .trae: "trae"
+        ]
+
+        for agent in AgentType.allCases {
+            XCTAssertEqual(agent.iconResourceName, expected[agent], "Unexpected icon resource for \(agent.rawValue)")
+        }
     }
 }

@@ -72,15 +72,15 @@ final class RepositoryBrowserViewModel {
     }
 
     /// Whether local installation is allowed now.
-    /// Requires: cloned + at least one successful sync + not currently syncing.
+    /// Requires: local clone exists + not currently syncing.
     var canInstallFromLocal: Bool {
-        repository.isCloned && repository.lastSyncedAt != nil && !isSyncing
+        repository.isCloned && !isSyncing
     }
 
     /// Human-readable reason when install is disabled.
     var installDisabledReason: String? {
         if isSyncing { return "Repository is syncing. Please wait." }
-        if !repository.isCloned || repository.lastSyncedAt == nil {
+        if !repository.isCloned {
             return "Repository must be synced before installing."
         }
         return nil

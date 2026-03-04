@@ -54,6 +54,7 @@ enum AgentType: String, CaseIterable, Identifiable, Codable {
 
     /// SF Symbol icon name corresponding to the Agent
     /// SF Symbols is Apple's system icon library, similar to Material Icons
+    /// Used as fallback when bundled SVG icon cannot be loaded.
     var iconName: String {
         switch self {
         case .claudeCode: "brain.head.profile"
@@ -67,6 +68,23 @@ enum AgentType: String, CaseIterable, Identifiable, Codable {
         case .codeBuddy: "c.circle"               // Letter C icon for CodeBuddy
         case .openClaw: "o.circle"               // Letter O icon for OpenClaw
         case .trae: "t.circle"                     // Letter T icon for Trae
+        }
+    }
+
+    /// Bundled SVG icon resource name under Resources/AgentIcons/*.svg
+    var iconResourceName: String {
+        switch self {
+        case .claudeCode: "claude"
+        case .codex: "codex"
+        case .geminiCLI: "gemini"
+        case .copilotCLI: "githubcopilot"
+        case .openCode: "opencode"
+        case .antigravity: "antigravity"
+        case .cursor: "cursor"
+        case .kiro: "kiro"
+        case .codeBuddy: "codebuddy"
+        case .openClaw: "openclaw"
+        case .trae: "trae"
         }
     }
 

@@ -228,7 +228,10 @@ struct SkillInstallView: View {
                                 get: { viewModel.selectedAgents.contains(agentType) },
                                 set: { _ in viewModel.toggleAgentSelection(agentType) }
                             )) {
-                                Label(agentType.displayName, systemImage: agentType.iconName)
+                                HStack(spacing: 6) {
+                                    AgentIconView(agentType: agentType, size: 13)
+                                    Text(agentType.displayName)
+                                }
                                     .font(.caption)
                             }
                             .toggleStyle(.checkbox)

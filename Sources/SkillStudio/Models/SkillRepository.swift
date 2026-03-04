@@ -138,6 +138,38 @@ struct SkillRepository: Codable, Identifiable, Hashable {
     var isCloned: Bool {
         FileManager.default.fileExists(atPath: localPath)
     }
+
+    /// Effective sync timestamp used by UI.
+    ///
+    /// Primary source is persisted `lastSyncedAt` (successful sync recorded by SkillStudio).
+    /// Fallback source is local git metadata for already-cloned repositories that were
+    /// imported from existing disk state and don't have persisted sync history yet.
+    var effectiveLastSyncedAt: Date? {
+        if let lastSyncedAt {
+            return lastSyncedAt
+        }
+        guard isCloned else { return nil }
+
+        let fm = FileManager.default
+        let repoURL = URL(fileURLWithPath: localPath)
+        let gitDir = repoURL.appendingPathComponent(".git")
+        guard fm.fileExists(atPath: gitDir.path) else { return nil }
+        let candidates = [
+            gitDir.appendingPathComponent("FETCH_HEAD"),
+            gitDir.appendingPathComponent("HEAD"),
+            gitDir
+        ]
+
+        for candidate in candidates {
+            guard let attrs = try? fm.attributesOfItem(atPath: candidate.path),
+                  let modifiedAt = attrs[.modificationDate] as? Date else {
+                continue
+            }
+            return modifiedAt
+        }
+
+        return nil
+    }
 }
 
 // MARK: - SkillRepository Extension: URL Parsing

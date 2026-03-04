@@ -125,7 +125,7 @@ private struct RepositoryRowView: View {
 
             // Last synced timestamp or "Never"
             VStack(alignment: .trailing, spacing: 2) {
-                if let date = repo.lastSyncedAt {
+                if let date = repo.effectiveLastSyncedAt {
                     Text("Synced")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
@@ -195,14 +195,16 @@ private struct RepositoryRowView: View {
             ProgressView()
                 .controlSize(.mini)
                 .frame(width: 16, height: 16)
-        case .success:
+        case .success(let date):
             Image(systemName: "checkmark.circle.fill")
                 .foregroundStyle(.green)
                 .font(.caption)
-        case .error:
+                .help("Last sync succeeded at \(absoluteDateText(date))")
+        case .error(let message):
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(.red)
                 .font(.caption)
+                .help(message)
         }
     }
 

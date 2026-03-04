@@ -47,10 +47,27 @@ struct SkillStudioApp: App {
     /// Using @State lets SwiftUI manage its lifecycle
     @State private var skillManager = SkillManager()
 
+    /// Persisted appearance mode in UserDefaults.
+    ///
+    /// `@AppStorage` keeps the app theme preference reactive:
+    /// - Changing the value in Settings immediately updates this property.
+    /// - SwiftUI automatically re-evaluates Scene/View bodies, so theme changes apply live.
+    @AppStorage(Constants.appThemeModeKey)
+    private var appThemeModeRawValue = AppThemeMode.system.rawValue
+
     /// NSApplicationDelegateAdaptor bridges SwiftUI with traditional AppKit lifecycle
     /// Through AppDelegate we can perform AppKit-level operations at app launch
     /// Used here to solve the issue of windows not auto-activating when launched from command line
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
+    /// Resolve the stored raw value into a typed mode with safe fallback.
+    ///
+    /// Why this computed property exists:
+    /// - Protects against invalid values in UserDefaults (e.g., old versions or manual edits).
+    /// - Keeps fallback logic centralized and reusable for both WindowGroup and Settings scene.
+    private var appThemeMode: AppThemeMode {
+        AppThemeMode(rawValue: appThemeModeRawValue) ?? .system
+    }
 
     var body: some Scene {
         // WindowGroup creates the main window
@@ -60,6 +77,10 @@ struct SkillStudioApp: App {
                 // All child views can access it via @Environment
                 // Similar to React's Context Provider or Android's dependency injection
                 .environment(skillManager)
+                // Apply app-wide appearance override to main windows.
+                // `.preferredColorScheme(nil)` means "follow system",
+                // while `.light` / `.dark` force a specific appearance.
+                .preferredColorScheme(appThemeMode.colorScheme)
         }
         // Set the window's default size
         .defaultSize(width: 1000, height: 700)
@@ -72,6 +93,9 @@ struct SkillStudioApp: App {
         Settings {
             SettingsView()
                 .environment(skillManager)
+                // Apply the same theme policy to Settings window,
+                // ensuring all app windows stay visually consistent.
+                .preferredColorScheme(appThemeMode.colorScheme)
         }
     }
 }

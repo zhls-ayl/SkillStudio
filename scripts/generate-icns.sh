@@ -1,9 +1,10 @@
-#!/bin/bash
-# generate-icns.sh — Convert SVG icon to macOS .icns file
+#!/usr/bin/env bash
+# generate-icns.sh — Convert Assets/AppIcon.svg to AppIcon.icns
 #
-# Dependencies:
-#   - swift (Xcode Command Line Tools)
-#   - iconutil (macOS builtin)
+# Why this implementation:
+# - Avoids swiftc toolchain/SDK mismatch issues in some environments.
+# - Uses rsvg-convert (or qlmanage fallback) to rasterize SVG.
+# - Uses Python Pillow to write a multi-size .icns directly.
 #
 # Usage:
 #   ./scripts/generate-icns.sh
@@ -13,157 +14,68 @@
 
 set -euo pipefail
 
-# Get project root directory (parent directory of script location)
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 SVG_FILE="$PROJECT_ROOT/Assets/AppIcon.svg"
-TMPDIR_ROOT="$(mktemp -d)"
-ICONSET_DIR="$TMPDIR_ROOT/AppIcon.iconset"
 OUTPUT_ICNS="$PROJECT_ROOT/Sources/SkillStudio/Resources/AppIcon.icns"
+TMP_ROOT="$(mktemp -d)"
+PNG_1024="$TMP_ROOT/icon_1024x1024.png"
 
-# Check dependencies
-if ! command -v swift &>/dev/null; then
-    echo "Error: swift not found. Install Xcode Command Line Tools."
-    exit 1
-fi
-
-if ! command -v iconutil &>/dev/null; then
-    echo "Error: iconutil not found. This script requires macOS."
-    exit 1
-fi
+cleanup() {
+  rm -rf "$TMP_ROOT"
+}
+trap cleanup EXIT
 
 if [ ! -f "$SVG_FILE" ]; then
-    echo "Error: SVG file not found at $SVG_FILE"
-    exit 1
+  echo "Error: SVG file not found: $SVG_FILE"
+  exit 1
 fi
 
-# Create .iconset directory
-mkdir -p "$ICONSET_DIR"
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "Error: python3 not found."
+  exit 1
+fi
 
-echo "Generating PNGs from $SVG_FILE ..."
+echo "Generating 1024x1024 PNG from SVG ..."
 
-# Use Swift + AppKit NSImage to render SVG to multi-size PNGs
-# NSImage natively supports SVG, no extra dependencies needed
-SWIFT_SCRIPT="$TMPDIR_ROOT/svg2png.swift"
-cat > "$SWIFT_SCRIPT" << 'SWIFT_EOF'
-import AppKit
-import Foundation
+# Preferred: librsvg renderer (more deterministic in CLI environments).
+if command -v rsvg-convert >/dev/null 2>&1; then
+  rsvg-convert -w 1024 -h 1024 "$SVG_FILE" -o "$PNG_1024"
+# Fallback: QuickLook thumbnail generator (macOS builtin).
+elif command -v qlmanage >/dev/null 2>&1; then
+  qlmanage -t -s 1024 -o "$TMP_ROOT" "$SVG_FILE" >/dev/null 2>&1
+  mv "$TMP_ROOT/AppIcon.svg.png" "$PNG_1024"
+else
+  echo "Error: neither rsvg-convert nor qlmanage is available."
+  echo "Install librsvg (brew install librsvg) or use macOS qlmanage."
+  exit 1
+fi
 
-// Command line arguments: svg2png <svgPath> <outputDir>
-let args = CommandLine.arguments
-guard args.count == 3 else {
-    fputs("Usage: svg2png <svgPath> <outputDir>\n", stderr)
-    exit(1)
-}
+echo "Creating .icns at $OUTPUT_ICNS ..."
 
-let svgPath = args[1]
-let outputDir = args[2]
+python3 - "$PNG_1024" "$OUTPUT_ICNS" << 'PYEOF'
+import sys
+from PIL import Image
 
-// Load SVG file as NSImage
-guard let image = NSImage(contentsOfFile: svgPath) else {
-    fputs("Error: Failed to load SVG from \(svgPath)\n", stderr)
-    exit(1)
-}
+png_file = sys.argv[1]
+output_icns = sys.argv[2]
 
-// macOS .icns requires the following 10 PNG sizes:
-// icon_16x16.png (16), icon_16x16@2x.png (32),
-// icon_32x32.png (32), icon_32x32@2x.png (64),
-// icon_128x128.png (128), icon_128x128@2x.png (256),
-// icon_256x256.png (256), icon_256x256@2x.png (512),
-// icon_512x512.png (512), icon_512x512@2x.png (1024)
-let sizes: [(label: String, pixels: Int)] = [
-    ("icon_16x16",      16),
-    ("icon_16x16@2x",   32),
-    ("icon_32x32",      32),
-    ("icon_32x32@2x",   64),
-    ("icon_128x128",    128),
-    ("icon_128x128@2x", 256),
-    ("icon_256x256",    256),
-    ("icon_256x256@2x", 512),
-    ("icon_512x512",    512),
-    ("icon_512x512@2x", 1024),
+image = Image.open(png_file).convert("RGBA")
+
+# Common macOS icon representations embedded in the output .icns.
+sizes = [
+    (16, 16),
+    (32, 32),
+    (64, 64),
+    (128, 128),
+    (256, 256),
+    (512, 512),
+    (1024, 1024),
 ]
 
-for entry in sizes {
-    let pixelSize = entry.pixels
+image.save(output_icns, format="ICNS", sizes=sizes)
+print(f"Done: {output_icns}")
+PYEOF
 
-    // Create bitmap context of specified pixel size (RGBA, 8 bits/channel)
-    guard let rep = NSBitmapImageRep(
-        bitmapDataPlanes: nil,
-        pixelsWide: pixelSize,
-        pixelsHigh: pixelSize,
-        bitsPerSample: 8,
-        samplesPerPixel: 4,
-        hasAlpha: true,
-        isPlanar: false,
-        colorSpaceName: .deviceRGB,
-        bytesPerRow: 0,
-        bitsPerPixel: 0
-    ) else {
-        fputs("Error: Failed to create bitmap for \(entry.label)\n", stderr)
-        exit(1)
-    }
-
-    // Set size property to pixel size (1:1 mapping, avoiding HiDPI scaling issues)
-    rep.size = NSSize(width: pixelSize, height: pixelSize)
-
-    // Draw SVG in bitmap context
-    NSGraphicsContext.saveGraphicsState()
-    guard let context = NSGraphicsContext(bitmapImageRep: rep) else {
-        fputs("Error: Failed to create graphics context for \(entry.label)\n", stderr)
-        exit(1)
-    }
-    NSGraphicsContext.current = context
-
-    // Clear background to transparent (areas outside clipPath in SVG need to remain transparent)
-    NSColor.clear.set()
-    NSRect(x: 0, y: 0, width: pixelSize, height: pixelSize).fill()
-
-    // Draw SVG image to entire bitmap area
-    image.draw(
-        in: NSRect(x: 0, y: 0, width: pixelSize, height: pixelSize),
-        from: .zero,
-        operation: .sourceOver,
-        fraction: 1.0
-    )
-
-    NSGraphicsContext.restoreGraphicsState()
-
-    // Export as PNG
-    guard let pngData = rep.representation(using: .png, properties: [:]) else {
-        fputs("Error: Failed to create PNG data for \(entry.label)\n", stderr)
-        exit(1)
-    }
-
-    let outputPath = "\(outputDir)/\(entry.label).png"
-    do {
-        try pngData.write(to: URL(fileURLWithPath: outputPath))
-        print("  \(entry.label).png (\(pixelSize)x\(pixelSize))")
-    } catch {
-        fputs("Error: Failed to write \(outputPath): \(error)\n", stderr)
-        exit(1)
-    }
-}
-
-print("All PNGs generated successfully.")
-SWIFT_EOF
-
-# Compile Swift script (linking AppKit framework)
-echo "Compiling SVG renderer ..."
-SWIFT_BIN="$TMPDIR_ROOT/svg2png"
-swiftc "$SWIFT_SCRIPT" -o "$SWIFT_BIN" -framework AppKit 2>&1
-
-# Run SVG -> PNG conversion
-"$SWIFT_BIN" "$SVG_FILE" "$ICONSET_DIR"
-
-echo ""
-echo "Creating .icns with iconutil ..."
-iconutil -c icns "$ICONSET_DIR" -o "$OUTPUT_ICNS"
-
-# Clean up temp directory
-rm -rf "$TMPDIR_ROOT"
-
-echo ""
-echo "Done! Output: $OUTPUT_ICNS"
 echo "File size: $(du -h "$OUTPUT_ICNS" | cut -f1)"

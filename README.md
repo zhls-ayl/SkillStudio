@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="Assets/AppIcon.svg" width="200" alt="SkillStudio App Icon" />
+  <img src="Assets/AppIcon2.svg" width="200" alt="SkillStudio App Icon" />
 </p>
 
 <h1 align="center">SkillStudio</h1>
@@ -29,6 +29,7 @@
 - **多代理支持** — Claude Code、Codex、Gemini CLI、Copilot CLI、OpenCode、Antigravity、Cursor、Kiro、CodeBuddy、OpenClaw、Trae
 - **注册表浏览** — 浏览 [skills.sh](https://skills.sh) 排行榜（全部 / 趋势 / 热门），搜索并一键安装
 - **统一仪表板** — 三栏式原生 macOS 视图，一览所有已安装技能
+- **主题切换** — 在设置页可选 System / Light / Dark，全局窗口统一生效并自动持久化
 - **一键安装** — 从 GitHub 克隆，自动创建符号链接并更新锁文件
 - **更新检查** — 检测远程变更，一键拉取更新
 - **SKILL.md 编辑器** — 分栏式编辑器，表单 + Markdown 实时预览
@@ -64,7 +65,7 @@ brew tap zhls-ayl/skillstudio && brew install --cask skillstudio
 ```bash
 git clone https://github.com/zhls-ayl/SkillStudio.git
 cd SkillStudio
-swift run SkillStudio
+./run    # 自动处理目录迁移后常见的 Swift 缓存问题
 
 # 或在 Xcode 中打开
 open Package.swift    # 按 Cmd+R 运行
