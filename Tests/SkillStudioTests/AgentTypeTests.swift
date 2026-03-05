@@ -46,15 +46,16 @@ final class AgentTypeTests: XCTestCase {
         XCTAssertEqual(agent.brandColor, "cyan")
 
         // Cursor reads Claude Code's skills directory as an additional source
+        // sourceAgent is .cursor (inheritance is Cursor's own behavior)
         let additionalDirs = agent.additionalReadableSkillsDirectories
         XCTAssertEqual(additionalDirs.count, 1)
-        XCTAssertEqual(additionalDirs[0].sourceAgent, .claudeCode)
+        XCTAssertEqual(additionalDirs[0].sourceAgent, .cursor)
     }
 
     // MARK: - Codex Agent Properties
 
     /// Verify all computed properties of the Codex agent type
-    /// Codex now has its own skills directory (~/.codex/skills/) instead of sharing ~/.agents/skills/
+    /// Codex has its own skills directory (~/.codex/skills/) and also reads ~/.agents/skills/ at runtime
     func testCodexProperties() {
         let agent = AgentType.codex
 
@@ -67,10 +68,30 @@ final class AgentTypeTests: XCTestCase {
         XCTAssertEqual(agent.iconResourceName, "codex")
         XCTAssertEqual(agent.brandColor, "green")
 
-        // Codex also reads the shared canonical directory ~/.agents/skills/
+        // Codex also reads the legacy shared directory ~/.agents/skills/
+        // sourceAgent is .codex (inheritance is Codex's own behavior)
         let additionalDirs = agent.additionalReadableSkillsDirectories
         XCTAssertEqual(additionalDirs.count, 1)
         XCTAssertEqual(additionalDirs[0].sourceAgent, .codex)
+    }
+
+    // MARK: - Gemini CLI Agent Properties
+
+    /// Verify Gemini CLI's additionalReadableSkillsDirectories includes ~/.agents/skills/ alias
+    func testGeminiCLIProperties() {
+        let agent = AgentType.geminiCLI
+
+        XCTAssertEqual(agent.rawValue, "gemini-cli")
+        XCTAssertEqual(agent.displayName, "Gemini CLI")
+        XCTAssertEqual(agent.detectCommand, "gemini")
+        XCTAssertEqual(agent.skillsDirectoryPath, "~/.gemini/skills")
+        XCTAssertEqual(agent.configDirectoryPath, "~/.gemini")
+
+        // Gemini CLI also reads ~/.agents/skills/ as a cross-agent compatibility alias
+        // sourceAgent is .geminiCLI (inheritance is Gemini CLI's own behavior)
+        let additionalDirs = agent.additionalReadableSkillsDirectories
+        XCTAssertEqual(additionalDirs.count, 1)
+        XCTAssertEqual(additionalDirs[0].sourceAgent, .geminiCLI)
     }
 
     // MARK: - Kiro Agent Properties
@@ -152,6 +173,24 @@ final class AgentTypeTests: XCTestCase {
 
         // Trae does not read other agents' directories (standalone agent)
         XCTAssertTrue(agent.additionalReadableSkillsDirectories.isEmpty)
+    }
+
+    // MARK: - Canonical Directory Paths
+
+    /// Verify new canonical directory points to ~/.skillstudio/skills/
+    func testSharedSkillsDirectoryURL() {
+        let url = AgentType.sharedSkillsDirectoryURL
+        // Path should end with .skillstudio/skills (not .agents/skills)
+        XCTAssertTrue(url.path.hasSuffix(".skillstudio/skills"),
+                      "sharedSkillsDirectoryURL should point to ~/.skillstudio/skills/, got: \(url.path)")
+    }
+
+    /// Verify legacy directory still points to ~/.agents/skills/
+    func testLegacySharedSkillsDirectoryURL() {
+        let url = AgentType.legacySharedSkillsDirectoryURL
+        // Path should end with .agents/skills
+        XCTAssertTrue(url.path.hasSuffix(".agents/skills"),
+                      "legacySharedSkillsDirectoryURL should point to ~/.agents/skills/, got: \(url.path)")
     }
 
     // MARK: - CaseIterable Count

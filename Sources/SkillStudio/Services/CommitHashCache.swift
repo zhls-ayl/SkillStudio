@@ -72,10 +72,11 @@ actor CommitHashCache {
 
     // MARK: - Properties
 
-    /// Default path for the cache file: ~/.agents/.skillstudio-cache.json
+    /// Default path for the cache file: ~/.skillstudio/.skillstudio-cache.json
+    /// Migrated from ~/.agents/ to ~/.skillstudio/ to keep SkillStudio private files separate.
     /// `static let` is a compile-time constant, similar to Java's static final
     static let defaultPath: URL = {
-        let home = NSString(string: "~/.agents/.skillstudio-cache.json").expandingTildeInPath
+        let home = NSString(string: "~/.skillstudio/.skillstudio-cache.json").expandingTildeInPath
         return URL(fileURLWithPath: home)
     }()
 

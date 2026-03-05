@@ -42,7 +42,7 @@ final class RegistryBrowserViewModelTests: XCTestCase {
             canonicalURL: URL(fileURLWithPath: "/tmp/skills/\(id)"),
             metadata: SkillMetadata(name: id, description: ""),
             markdownBody: "",
-            scope: .sharedGlobal,
+            scope: .unassigned,
             installations: [],
             lockEntry: lockEntry
         )

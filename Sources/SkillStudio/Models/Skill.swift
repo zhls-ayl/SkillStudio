@@ -10,7 +10,7 @@ struct Skill: Identifiable, Hashable {
     let id: String
 
     /// Canonical path (real path after resolving symlink)
-    /// e.g., ~/.agents/skills/agent-notifier/
+    /// e.g., ~/.skillstudio/skills/agent-notifier/
     let canonicalURL: URL
 
     /// Metadata parsed from SKILL.md

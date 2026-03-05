@@ -3,9 +3,9 @@ import Foundation
 /// SymlinkManager is responsible for creating and removing symlinks (F06 Agent Assignment)
 ///
 /// Core Concepts:
-/// - The "real copy" of all skills is stored in ~/.agents/skills/ (canonical location)
+/// - The "real copy" of all skills is stored in ~/.skillstudio/skills/ (canonical location)
 /// - Each Agent references the shared skill via symlink
-/// - Example: ~/.claude/skills/agent-notifier -> ~/.agents/skills/agent-notifier
+/// - Example: ~/.claude/skills/agent-notifier -> ~/.skillstudio/skills/agent-notifier
 ///
 /// symlink is similar to Linux/macOS `ln -s`, a special file pointing to another file/directory
 enum SymlinkManager {
@@ -33,7 +33,7 @@ enum SymlinkManager {
     /// Create symlink for skill to specified Agent's skills directory
     ///
     /// - Parameters:
-    ///   - source: canonical path of the skill (e.g. ~/.agents/skills/agent-notifier/)
+    ///   - source: canonical path of the skill (e.g. ~/.skillstudio/skills/agent-notifier/)
     ///   - agent: target Agent type
     /// - Throws: SymlinkError
     ///

@@ -132,6 +132,9 @@ struct ContentView: View {
             detailVM = SkillDetailViewModel(skillManager: skillManager)
             // F09: Initialize registry browser ViewModel
             registryVM = RegistryBrowserViewModel(skillManager: skillManager)
+            // Migrate data from old paths (~/.agents/) to new paths (~/.skillstudio/)
+            // Must run before refresh() so the scanner finds skills at the new canonical location
+            MigrationManager.migrateIfNeeded()
             await skillManager.refresh()
             // Build repoVMs for any repositories that were loaded during refresh
             rebuildRepoVMs()

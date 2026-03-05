@@ -29,24 +29,27 @@ enum Constants {
     enum ScopeColors {
         static func color(for scope: SkillScope) -> Color {
             switch scope {
-            case .sharedGlobal: .blue
+            case .unassigned:   .orange
+            case .shared:       .blue
             case .agentLocal:   .secondary
             case .project:      .green
             }
         }
     }
 
-    /// Shared skills directory path
-    static let sharedSkillsPath = "~/.agents/skills"
+    /// Shared skills directory path (SkillStudio private canonical storage)
+    /// Migrated from ~/.agents/skills/ to ~/.skillstudio/skills/ to avoid overlap
+    /// with Agent-readable directories (e.g. Codex reads ~/.agents/skills/)
+    static let sharedSkillsPath = "~/.skillstudio/skills"
 
-    /// Lock file path
+    /// Lock file path — stays in ~/.agents/ because it is shared with npx skills CLI
     static let lockFilePath = "~/.agents/.skill-lock.json"
 
-    /// Directory where custom repositories are cloned: ~/.agents/repos/
-    static let reposBasePath = "~/.agents/repos"
+    /// Directory where custom repositories are cloned: ~/.skillstudio/repos/
+    static let reposBasePath = "~/.skillstudio/repos"
 
     /// Config file that stores the list of user-configured custom repositories
-    static let skillReposConfigPath = "~/.agents/.skillstudio-repos.json"
+    static let skillReposConfigPath = "~/.skillstudio/.skillstudio-repos.json"
 
     /// UserDefaults key for app appearance preference.
     /// Stored as `AppThemeMode.rawValue` (`system` / `light` / `dark`).

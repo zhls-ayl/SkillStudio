@@ -27,7 +27,8 @@ struct ScopeBadge: View {
 
     private var iconName: String {
         switch scope {
-        case .sharedGlobal: "globe"
+        case .unassigned: "tray"
+        case .shared: "globe"
         case .agentLocal: "person"
         case .project: "folder"
         }

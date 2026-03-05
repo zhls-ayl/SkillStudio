@@ -210,6 +210,12 @@ final class SkillManager {
     /// Start watching file system, monitor all relevant directories
     private func startWatching() {
         var paths: [URL] = [SkillScanner.sharedSkillsURL]
+        // Also watch legacy directory during transition period
+        // (users or external tools may still place skills there)
+        if SkillScanner.legacySkillsURL.path != SkillScanner.sharedSkillsURL.path,
+           FileManager.default.fileExists(atPath: SkillScanner.legacySkillsURL.path) {
+            paths.append(SkillScanner.legacySkillsURL)
+        }
         for agent in AgentType.allCases {
             paths.append(agent.skillsDirectoryURL)
         }
@@ -279,28 +285,38 @@ final class SkillManager {
 
     /// Toggle skill installation status on specified Agent
     ///
-    /// Inherited-installation handling:
-    /// - If this Agent sees the skill via another Agent's readable directory (e.g. Copilot via Claude),
-    ///   toggling OFF should remove the source Agent's direct symlink.
-    /// - This makes the UX deterministic: first OFF removes direct install, second OFF removes inherited source.
-    /// - Special case: when inheritedFrom == agent (for example Codex reading ~/.agents/skills directly),
-    ///   there is no separate source symlink to remove, so we safely no-op.
+    /// Each Agent only manages its own directory's symlink — SkillStudio never touches
+    /// another Agent's directory. Cross-directory reading is each Agent's own runtime
+    /// behavior, which SkillStudio does not interfere with.
+    ///
+    /// Toggle behavior:
+    /// - Has direct install (symlink in agent's own dir) → remove it
+    /// - No direct install (regardless of inherited status) → create symlink in agent's own dir
+    /// - If agent only has an inherited installation, toggling ON creates a direct install (override)
+    ///
+    /// IMPORTANT: We check the file system directly instead of relying on skill.installations,
+    /// because the passed-in `skill` is a struct value copy captured by SwiftUI's Binding closure.
+    /// Due to race conditions with FileSystemWatcher-triggered refreshes, the captured `skill`
+    /// may be stale by the time this async method executes. Checking the actual file system
+    /// ensures we always make the correct decision regardless of any data staleness.
     func toggleAssignment(_ skill: Skill, agent: AgentType) async throws {
-        let installation = skill.installations.first { $0.agentType == agent }
+        // Check the actual file system state instead of relying on potentially stale skill.installations.
+        // This avoids the race condition where a FileSystemWatcher refresh re-renders the view,
+        // causing the Binding closure's captured `skill` to have outdated installation data.
+        //
+        // Use isSymlink OR fileExists to cover all cases:
+        // - isSymlink: detects symlinks including dangling ones (uses lstat, does NOT follow links)
+        // - fileExists: detects real directories (follows symlinks, so needed for non-symlink case)
+        let targetURL = agent.skillsDirectoryURL.appendingPathComponent(skill.id)
+        let hasDirectInstall = SymlinkManager.isSymlink(at: targetURL)
+            || FileManager.default.fileExists(atPath: targetURL.path)
 
-        if let installation, installation.isInherited {
-            // For inherited installs, try to remove the source Agent assignment
-            // so user can fully turn this Agent "OFF" from the detail panel.
-            if let sourceAgent = installation.inheritedFrom, sourceAgent != agent {
-                try await unassignSkill(skill, from: sourceAgent)
-            }
-            return
-        }
-
-        let isInstalled = installation != nil
-        if isInstalled {
+        if hasDirectInstall {
+            // Something exists at agent's skills dir → remove it (symlink or real directory)
             try await unassignSkill(skill, from: agent)
         } else {
+            // Nothing exists → create symlink in this agent's own directory
+            // This works whether the agent has an inherited installation or not
             try await assignSkill(skill, to: agent)
         }
     }
@@ -311,8 +327,8 @@ final class SkillManager {
     ///
     /// Installation flow:
     /// 1. Get tree hash (for lock file recording, subsequent update detection)
-    /// 2. Copy files to canonical directory (~/.agents/skills/<name>/)
-    /// 3. Create symlinks for selected Agents (skip Codex as it shares canonical directory)
+    /// 2. Copy files to canonical directory (~/.skillstudio/skills/<name>/)
+    /// 3. Create symlinks for selected Agents
     /// 4. Create/update lock file entry
     /// 5. Refresh UI
     ///
@@ -343,7 +359,7 @@ final class SkillManager {
         try await commitHashCache.save()
 
         // 2. Copy to canonical directory
-        // canonical path: ~/.agents/skills/<skillName>/
+        // canonical path: ~/.skillstudio/skills/<skillName>/
         let canonicalDir = SkillScanner.sharedSkillsURL.appendingPathComponent(skill.id)
         let sourceDir = repoDir.appendingPathComponent(skill.folderPath)
 

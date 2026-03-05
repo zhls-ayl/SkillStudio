@@ -4,8 +4,11 @@ import Foundation
 /// Swift enums can have associated values, which Java/Go enums cannot do
 /// Similar to Rust enum / Go tagged union
 enum SkillScope: Hashable, Identifiable {
-    /// Shared global: located in ~/.agents/skills/, can be referenced by all Agents via symlink
-    case sharedGlobal
+    /// Unassigned: exists only in ~/.skillstudio/skills/ cache, not installed to any Agent
+    case unassigned
+
+    /// Shared: directly installed to 2+ Agents, genuinely shared across Agents
+    case shared
 
     /// Agent local: only exists in a specific Agent's skills directory (not symlink)
     case agentLocal(AgentType)
@@ -15,7 +18,8 @@ enum SkillScope: Hashable, Identifiable {
 
     var id: String {
         switch self {
-        case .sharedGlobal: "global"
+        case .unassigned: "unassigned"
+        case .shared: "shared"
         case .agentLocal(let agent): "local-\(agent.rawValue)"
         case .project(let url): "project-\(url.path)"
         }
@@ -23,7 +27,8 @@ enum SkillScope: Hashable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .sharedGlobal: "Global"
+        case .unassigned: "Unassigned"
+        case .shared: "Shared"
         case .agentLocal(let agent): "\(agent.displayName) Local"
         case .project: "Project"
         }
@@ -32,7 +37,8 @@ enum SkillScope: Hashable, Identifiable {
     /// UI badge color
     var badgeColor: String {
         switch self {
-        case .sharedGlobal: "blue"
+        case .unassigned: "orange"
+        case .shared: "blue"
         case .agentLocal: "gray"
         case .project: "green"
         }

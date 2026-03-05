@@ -146,45 +146,59 @@ enum AgentType: String, CaseIterable, Identifiable, Codable {
         }
     }
 
-    /// Shared canonical skills directory URL (~/.agents/skills/)
-    /// Used by SkillScanner and agents that read from the shared directory (e.g., OpenCode).
-    /// Defined here as a single source of truth to avoid duplicating the path string.
+    /// SkillStudio private canonical skills directory URL (~/.skillstudio/skills/)
+    /// All skill files are stored here; Agent directories contain symlinks pointing to this location.
+    /// Migrated from ~/.agents/skills/ to avoid overlap with Agent-readable directories.
     static let sharedSkillsDirectoryURL: URL = {
+        let path = NSString(string: "~/.skillstudio/skills").expandingTildeInPath
+        return URL(fileURLWithPath: path)
+    }()
+
+    /// Legacy shared skills directory (~/.agents/skills/) — still readable by Codex, Gemini CLI, OpenCode at runtime.
+    /// Used by additionalReadableSkillsDirectories for inheritance detection and by MigrationManager
+    /// to migrate existing data to the new canonical location.
+    static let legacySharedSkillsDirectoryURL: URL = {
         let path = NSString(string: "~/.agents/skills").expandingTildeInPath
         return URL(fileURLWithPath: path)
     }()
 
     /// Skills directories of other Agents that this Agent can read in addition to its own skills directory
     ///
-    /// This is the "Single Source of Truth" for cross-directory reading rules:
-    /// - Copilot CLI can read both ~/.copilot/skills/ and ~/.claude/skills/
-    ///   (See GitHub official documentation: https://docs.github.com/en/copilot/concepts/agents/about-agent-skills)
-    /// - OpenCode can read both ~/.claude/skills/ and ~/.agents/skills/
-    ///   (See: https://opencode.ai/docs/skills/#place-files)
-    /// - Other Agents currently do not have cross-directory reading behavior
+    /// This is the "Single Source of Truth" for cross-directory reading rules.
+    /// These rules describe each Agent's runtime behavior (which directories it scans for skills).
+    /// SkillStudio uses this information for display only (inheritance hints) — it does NOT
+    /// interfere with cross-reading by creating/removing symlinks in other Agents' directories.
+    ///
+    /// sourceAgent is set to the current agent itself because the inheritance is that agent's
+    /// own behavior, not controlled by another agent. This field is used for UI display only.
     ///
     /// Returns an array of tuples: (Directory URL, Source Agent Type)
     /// Similar to Java's Pair<URL, AgentType>, Swift uses named tuples for better clarity
     var additionalReadableSkillsDirectories: [(url: URL, sourceAgent: AgentType)] {
         switch self {
         case .codex:
-            // Codex also reads the shared canonical directory ~/.agents/skills/
+            // Codex reads ~/.agents/skills/ as its project-level convention
             // See: https://developers.openai.com/codex/skills/#where-to-save-skills
-            // $HOME/.agents/skills is the user-level skills directory for Codex
-            return [(Self.sharedSkillsDirectoryURL, .codex)]
+            return [(Self.legacySharedSkillsDirectoryURL, .codex)]
+        case .geminiCLI:
+            // Gemini CLI reads ~/.agents/skills/ as a cross-agent compatibility alias
+            // See: https://geminicli.com/docs/cli/skills/
+            return [(Self.legacySharedSkillsDirectoryURL, .geminiCLI)]
         case .copilotCLI:
             // Copilot CLI can also read Claude Code's skills directory
-            return [(AgentType.claudeCode.skillsDirectoryURL, .claudeCode)]
+            // See: https://docs.github.com/en/copilot/concepts/agents/about-agent-skills
+            return [(AgentType.claudeCode.skillsDirectoryURL, .copilotCLI)]
         case .openCode:
-            // OpenCode can also read Claude Code's and the shared canonical skills directories
+            // OpenCode can also read Claude Code's and the legacy shared skills directories
             // See: https://opencode.ai/docs/skills/#place-files
             return [
-                (AgentType.claudeCode.skillsDirectoryURL, .claudeCode),
-                (Self.sharedSkillsDirectoryURL, .codex)
+                (AgentType.claudeCode.skillsDirectoryURL, .openCode),
+                (Self.legacySharedSkillsDirectoryURL, .openCode)
             ]
         case .cursor:
             // Cursor can also read Claude Code's skills directory
-            return [(AgentType.claudeCode.skillsDirectoryURL, .claudeCode)]
+            // See: https://cursor.com/docs/context/skills
+            return [(AgentType.claudeCode.skillsDirectoryURL, .cursor)]
         default:
             return []
         }
