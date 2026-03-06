@@ -1,11 +1,11 @@
 // swift-tools-version: 5.9
-// SkillStudio — Native macOS Agent Skills Manager
+// SkillsMaster — Native macOS Agent Skills Manager
 // This is the Swift Package Manager project configuration file, similar to Go's go.mod or Python's pyproject.toml
 
 import PackageDescription
 
 let package = Package(
-    name: "SkillStudio",
+    name: "SkillsMaster",
 
     // Specify minimum platform: macOS 14 (Sonoma), because we use the @Observable macro (new feature in macOS 14+)
     platforms: [.macOS(.v14)],
@@ -23,12 +23,12 @@ let package = Package(
     targets: [
         // Main application target (executable), similar to Go's main package
         .executableTarget(
-            name: "SkillStudio",
+            name: "SkillsMaster",
             dependencies: [
                 "Yams",
                 .product(name: "Markdown", package: "swift-markdown"),
             ],
-            path: "Sources/SkillStudio",
+            path: "Sources/SkillsMaster",
             // resources array tells SPM to bundle specified files into Bundle.module
             // .process optimizes based on file type (e.g., PNG compression), .copy copies as is
             // .icns files need to use .copy to preserve original format, as SPM doesn't recognize .icns type
@@ -41,9 +41,9 @@ let package = Package(
 
         // Unit test target, similar to Go's _test.go files
         .testTarget(
-            name: "SkillStudioTests",
-            dependencies: ["SkillStudio"],
-            path: "Tests/SkillStudioTests"
+            name: "SkillsMasterTests",
+            dependencies: ["SkillsMaster"],
+            path: "Tests/SkillsMasterTests"
         ),
     ]
 )
