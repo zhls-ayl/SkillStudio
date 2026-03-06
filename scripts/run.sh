@@ -11,7 +11,7 @@ export CLANG_MODULE_CACHE_PATH="${REPO_ROOT}/.build/clang-module-cache"
 export SWIFTPM_MODULECACHE_OVERRIDE="${REPO_ROOT}/.build/swiftpm-module-cache"
 mkdir -p "${CLANG_MODULE_CACHE_PATH}" "${SWIFTPM_MODULECACHE_OVERRIDE}"
 
-LOG_FILE="$(mktemp -t skillstudio-run.XXXXXX.log)"
+LOG_FILE="$(mktemp -t skillsmaster-run.XXXXXX.log)"
 cleanup() {
   rm -f "${LOG_FILE}"
 }
@@ -19,7 +19,7 @@ trap cleanup EXIT
 
 run_once() {
   set +e
-  swift run SkillStudio 2>&1 | tee "${LOG_FILE}"
+  swift run SkillsMaster 2>&1 | tee "${LOG_FILE}"
   local status=${PIPESTATUS[0]}
   set -e
   return "${status}"
@@ -40,8 +40,8 @@ fi
 
 if matches_log "PCH was compiled with module cache path|compiled with module cache path .* currently"; then
   echo ""
-  echo "[skillstudio/run] Detected stale module cache from a moved/renamed project path."
-  echo "[skillstudio/run] Cleaning .build and retrying once..."
+  echo "[skillsmaster/run] Detected stale module cache from a moved/renamed project path."
+  echo "[skillsmaster/run] Cleaning .build and retrying once..."
   rm -rf "${REPO_ROOT}/.build"
   swift package clean >/dev/null 2>&1 || true
   run_once
@@ -50,8 +50,8 @@ fi
 
 if matches_log "this SDK is not supported by the compiler|could not build Objective-C module 'SwiftShims'"; then
   echo ""
-  echo "[skillstudio/run] Detected Swift toolchain/SDK mismatch."
-  echo "[skillstudio/run] Try aligning Xcode/CommandLineTools, then run again:"
+  echo "[skillsmaster/run] Detected Swift toolchain/SDK mismatch."
+  echo "[skillsmaster/run] Try aligning Xcode/CommandLineTools, then run again:"
   echo "  sudo xcode-select -s /Applications/Xcode.app/Contents/Developer"
 fi
 

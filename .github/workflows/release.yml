@@ -49,21 +49,21 @@ jobs:
 
       # 验证构建产物的架构（应同时包含 arm64 和 x86_64）
       - name: Verify universal binary
-        run: file build/SkillStudio.app/Contents/MacOS/SkillStudio
+        run: file build/SkillsMaster.app/Contents/MacOS/SkillsMaster
 
       # 使用 ditto 打包 zip（比 zip 命令更好地保留 macOS 元数据和权限）
-      # --keepParent 保留 SkillStudio.app 目录结构
+      # --keepParent 保留 SkillsMaster.app 目录结构
       - name: Create zip archive
         run: |
           cd build
-          ditto -c -k --keepParent SkillStudio.app "SkillStudio-v${{ steps.version.outputs.VERSION }}-universal.zip"
+          ditto -c -k --keepParent SkillsMaster.app "SkillsMaster-v${{ steps.version.outputs.VERSION }}-universal.zip"
 
       # 计算 zip 文件的 SHA256 哈希值，用于 Homebrew cask 校验
       # 直接从本地构建产物计算，避免从 GitHub Release 重新下载的竞态条件
       - name: Compute SHA256
         id: sha256
         run: |
-          SHA=$(shasum -a 256 "build/SkillStudio-v${{ steps.version.outputs.VERSION }}-universal.zip" | awk '{print $1}')
+          SHA=$(shasum -a 256 "build/SkillsMaster-v${{ steps.version.outputs.VERSION }}-universal.zip" | awk '{print $1}')
           echo "SHA256=${SHA}" >> "$GITHUB_OUTPUT"
           echo "SHA256: ${SHA}"
 
@@ -71,12 +71,12 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: build/SkillStudio-v${{ steps.version.outputs.VERSION }}-universal.zip
+          files: build/SkillsMaster-v${{ steps.version.outputs.VERSION }}-universal.zip
           generate_release_notes: true
           name: ${{ github.ref_name }}
 
   # Homebrew cask 自动更新
-  # 在 release 成功后，自动更新 homebrew-skillstudio 仓库的 cask 文件
+  # 在 release 成功后，自动更新 homebrew-skillsmaster 仓库的 cask 文件
   # 独立 job：失败不影响已发布的 Release，可单独重跑
   # 使用 ubuntu-latest（只需编辑文本+git push，不需要 macOS）
   update-homebrew:
@@ -84,10 +84,10 @@ jobs:
     needs: release
     steps:
       # 使用 PAT 克隆 homebrew tap 仓库，token 会自动配置到 git remote URL
-      - name: Checkout homebrew-skillstudio
+      - name: Checkout homebrew-skillsmaster
         uses: actions/checkout@v4
         with:
-          repository: zhls-ayl/homebrew-skillstudio
+          repository: zhls-ayl/homebrew-skillsmaster
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
 
       # sed -i 原地编辑，替换 version 和 sha256 行
@@ -96,10 +96,10 @@ jobs:
           VERSION="${{ needs.release.outputs.version }}"
           SHA256="${{ needs.release.outputs.sha256 }}"
           echo "Updating cask to version ${VERSION}, sha256 ${SHA256}"
-          sed -i "s/version \".*\"/version \"${VERSION}\"/" Casks/skillstudio.rb
-          sed -i "s/sha256 \".*\"/sha256 \"${SHA256}\"/" Casks/skillstudio.rb
+          sed -i "s/version \".*\"/version \"${VERSION}\"/" Casks/skillsmaster.rb
+          sed -i "s/sha256 \".*\"/sha256 \"${SHA256}\"/" Casks/skillsmaster.rb
           echo "--- Updated cask file ---"
-          cat Casks/skillstudio.rb
+          cat Casks/skillsmaster.rb
 
       # 使用 github-actions bot 身份提交
       # git diff --cached --quiet 检查是否有实际变更，避免空提交
@@ -107,11 +107,11 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Casks/skillstudio.rb
+          git add Casks/skillsmaster.rb
           if git diff --cached --quiet; then
             echo "No changes to commit (version already up to date)"
           else
-            git commit -m "bump skillstudio to v${{ needs.release.outputs.version }}"
+            git commit -m "bump skillsmaster to v${{ needs.release.outputs.version }}"
             git push
             echo "Successfully pushed cask update"
           fi

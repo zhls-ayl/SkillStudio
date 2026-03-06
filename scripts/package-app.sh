@@ -18,7 +18,7 @@ set -euo pipefail
 VERSION="0.0.0-dev"
 CREATE_ZIP="false"
 OUTPUT_DIR="build"
-APP_NAME="SkillStudio"
+APP_NAME="SkillsMaster"
 
 usage() {
     cat <<EOF
@@ -170,7 +170,7 @@ echo "==> Assembling .app bundle ..."
 cp "$BINARY_PATH" "${MACOS_DIR}/${APP_NAME}"
 chmod +x "${MACOS_DIR}/${APP_NAME}"
 
-ICON_SOURCE="Sources/SkillStudio/Resources/AppIcon.icns"
+ICON_SOURCE="Sources/SkillsMaster/Resources/AppIcon.icns"
 if [ -f "$ICON_SOURCE" ]; then
     cp "$ICON_SOURCE" "${RESOURCES_DIR}/AppIcon.icns"
     echo "    Copied AppIcon.icns"
@@ -190,15 +190,15 @@ cat > "${CONTENTS_DIR}/Info.plist" <<PLIST_EOF
 <dict>
     <!-- App Unique Identifier, similar to Android package name -->
     <key>CFBundleIdentifier</key>
-    <string>com.github.skillstudio</string>
+    <string>com.github.skillsmaster</string>
 
     <!-- App Display Name -->
     <key>CFBundleName</key>
-    <string>SkillStudio</string>
+    <string>SkillsMaster</string>
 
     <!-- Executable Filename (matches filename in MacOS/ directory) -->
     <key>CFBundleExecutable</key>
-    <string>SkillStudio</string>
+    <string>SkillsMaster</string>
 
     <!-- User-visible Version Number (e.g. 1.0.0) -->
     <key>CFBundleShortVersionString</key>

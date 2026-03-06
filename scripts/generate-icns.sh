@@ -10,7 +10,7 @@
 #   ./scripts/generate-icns.sh
 #
 # Output:
-#   Sources/SkillStudio/Resources/AppIcon.icns
+#   Sources/SkillsMaster/Resources/AppIcon.icns
 
 set -euo pipefail
 
@@ -18,7 +18,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 SVG_FILE="$PROJECT_ROOT/Assets/AppIcon.svg"
-OUTPUT_ICNS="$PROJECT_ROOT/Sources/SkillStudio/Resources/AppIcon.icns"
+OUTPUT_ICNS="$PROJECT_ROOT/Sources/SkillsMaster/Resources/AppIcon.icns"
 TMP_ROOT="$(mktemp -d)"
 PNG_1024="$TMP_ROOT/icon_1024x1024.png"
 
