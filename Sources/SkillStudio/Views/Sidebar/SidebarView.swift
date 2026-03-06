@@ -56,27 +56,21 @@ struct SidebarView: View {
         List(selection: $selection) {
             // Section creates groups (shown as collapsible groups in macOS sidebar)
             Section("Overview") {
-                sidebarRow(item: .dashboard) {
+                sidebarRow {
                     Label("Dashboard", systemImage: "square.grid.2x2")
                 }
                 .badge(skillManager.skills.count)
-                // .listRowBackground must be the LAST modifier on the row.
-                // If placed inside sidebarRow() before .badge()/.opacity(), those outer
-                // modifiers wrap the view and prevent the background preference from
-                // propagating to the List — causing no visible selection highlight.
-                .listRowBackground(
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(rowBackground(for: .dashboard))
-                )
+                // IMPORTANT: keep .tag as the outermost row modifier.
+                // List(selection:) reads tags from the final row container.
+                // If .tag is applied inside sidebarRow() and then wrapped by
+                // .badge/.opacity/.listRowBackground, some rows become non-selectable.
+                .tag(SidebarItem.dashboard)
 
                 // F09: Registry browser — browse and search skills.sh catalog
-                sidebarRow(item: .registry) {
+                sidebarRow {
                     Label("Registry", systemImage: "globe")
                 }
-                .listRowBackground(
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(rowBackground(for: .registry))
-                )
+                .tag(SidebarItem.registry)
             }
 
             // Custom Repos section: shown only when at least one repository is configured
@@ -88,7 +82,7 @@ struct SidebarView: View {
                         let item = SidebarItem.customRepo(repo.id)
                         let syncStatus = skillManager.repoSyncStatuses[repo.id] ?? .idle
 
-                        sidebarRow(item: item) {
+                        sidebarRow {
                             Label {
                                 Text(repo.name)
                             } icon: {
@@ -107,10 +101,7 @@ struct SidebarView: View {
                                 }
                             }
                         }
-                        .listRowBackground(
-                            RoundedRectangle(cornerRadius: 6)
-                                .fill(rowBackground(for: item))
-                        )
+                        .tag(item)
                     }
                 }
             }
@@ -119,7 +110,7 @@ struct SidebarView: View {
                 ForEach(AgentType.allCases) { agentType in
                     let agent = skillManager.agents.first { $0.type == agentType }
 
-                    sidebarRow(item: .agent(agentType)) {
+                    sidebarRow {
                         Label {
                             Text(agentType.displayName)
                         } icon: {
@@ -132,13 +123,7 @@ struct SidebarView: View {
                     // not including inherited installations (like Copilot inheriting skills from Claude directory)
                     // opacity controls transparency: uninstalled Agents are shown semi-transparent
                     .opacity(agent?.isInstalled == true ? 1.0 : 0.5)
-                    // .listRowBackground must be the LAST modifier — after .badge() and .opacity().
-                    // Those outer modifiers wrap the view and block background preference propagation
-                    // if .listRowBackground is applied before them (e.g. inside sidebarRow()).
-                    .listRowBackground(
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(rowBackground(for: .agent(agentType)))
-                    )
+                    .tag(SidebarItem.agent(agentType))
                 }
             }
         }
@@ -243,7 +228,6 @@ struct SidebarView: View {
     /// means "returns some View, but caller doesn't need to know the specific type"
     @ViewBuilder
     private func sidebarRow<Label: View>(
-        item: SidebarItem,
         @ViewBuilder label: () -> Label
     ) -> some View {
         // Keep row content as a plain view and let List(selection:) own the selection lifecycle.
@@ -252,33 +236,6 @@ struct SidebarView: View {
         label()
             // Expand interaction area (click + hover) to the full row rectangle.
             .contentShape(Rectangle())
-            // Associate this row with a concrete selection value for List(selection:).
-            .tag(item)
-    }
-
-    /// Returns row background color based on selection/hover state
-    /// macOS native sidebar color guidelines:
-    /// - Selected: accentColor (system accent color, default blue) + moderate opacity for clear visibility
-    /// - Hover: handled by native .sidebar style (we do not override hover state manually)
-    /// - Normal: fully transparent
-    ///
-    /// Note: `.listStyle(.sidebar)` provides its own native selection indicator,
-    /// but `.listRowBackground()` replaces it entirely. We must ensure our custom
-    /// background is visible enough — opacity(0.2) provides a clear highlight
-    /// while still looking subtle and native.
-    private func rowBackground(for item: SidebarItem) -> Color {
-        if selection == item {
-            // Selected state: if Agent item, use that Agent's brand color; Dashboard/Registry/Settings keep system accentColor
-            // Swift 5.9 if/else expression syntax: can use if-else directly in let assignment, similar to ternary but supports pattern matching
-            let baseColor: Color = if case .agent(let agentType) = item {
-                Constants.AgentColors.color(for: agentType)
-            } else {
-                Color.accentColor
-            }
-            return baseColor.opacity(0.2)
-        }
-        // Normal state: transparent
-        return Color.clear
     }
 
     /// Returns true if the given SyncStatus represents an error state.
