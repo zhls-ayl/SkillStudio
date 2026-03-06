@@ -1,5 +1,4 @@
 import SwiftUI
-import Dispatch
 
 /// Sidebar navigation item enum
 ///
@@ -34,7 +33,7 @@ enum SidebarItem: Hashable {
 ///
 /// macOS sidebar visual guidelines (referencing Finder, Mail and other native apps):
 /// - Selected: rounded rectangle with accentColor semi-transparent background
-/// - Hover: very light gray background, hinting it's clickable
+/// - Hover: use native .sidebar hover feedback from AppKit
 /// - Normal: transparent background
 ///
 /// @Binding is two-way binding (similar to Vue's v-model), parent and child components share the same state
@@ -47,10 +46,6 @@ struct SidebarView: View {
     /// @Environment(\.openSettings) gets the system-provided OpenSettingsAction from environment,
     /// calling openSettings() is equivalent to user pressing Cmd+, (more reliable than NSApp.sendAction)
     @Environment(\.openSettings) private var openSettings
-
-    /// Currently hovered sidebar item
-    /// @State is view-private state, hover state is only used within this view, no need to pass to parent component
-    @State private var hoveredItem: SidebarItem?
 
     /// F10: Install modal's ViewModel (created only when showing sheet)
     /// Uses `.sheet(item:)` binding: shows sheet when non-nil, closes when nil
@@ -241,7 +236,7 @@ struct SidebarView: View {
         }
     }
 
-    /// Build sidebar row view,统一 handling click, selection highlight and hover effects
+    /// Build sidebar row view, unified handling for row hit-testing and List selection wiring
     ///
     /// @ViewBuilder allows closure to return different View types (similar to Java's generic methods)
     /// `some View` is Swift's opaque return type,
@@ -251,37 +246,20 @@ struct SidebarView: View {
         item: SidebarItem,
         @ViewBuilder label: () -> Label
     ) -> some View {
-        // Keep row content as a plain view so List manages native selection behavior.
-        // Avoiding an inner Button here prevents synchronous selection mutation during
-        // NSTableView delegate callbacks, which can trigger reentrancy warnings.
+        // Keep row content as a plain view and let List(selection:) own the selection lifecycle.
+        // This follows AppKit/SwiftUI best practice: avoid manually writing selection state
+        // from gesture handlers inside table rows, which can cause NSTableView delegate reentrancy.
         label()
             // Expand interaction area (click + hover) to the full row rectangle.
             .contentShape(Rectangle())
             // Associate this row with a concrete selection value for List(selection:).
             .tag(item)
-            // Explicitly set selection on tap, but defer to next run loop turn.
-            // DispatchQueue.main.async is used intentionally so the state write happens
-            // after the current AppKit table delegate call stack unwinds.
-            .onTapGesture {
-                DispatchQueue.main.async {
-                    selection = item
-                }
-            }
-            // .onHover listens for mouse enter/leave events (macOS specific, similar to CSS :hover)
-            // Closure parameter isHovering: Bool indicates if mouse is over element
-            .onHover { isHovering in
-                // Use withAnimation to add transition animation, .easeInOut is ease-in-out curve
-                // duration: 0.15 is 150 milliseconds, fast enough but not abrupt
-                withAnimation(.easeInOut(duration: 0.15)) {
-                    hoveredItem = isHovering ? item : nil
-                }
-            }
     }
 
     /// Returns row background color based on selection/hover state
     /// macOS native sidebar color guidelines:
     /// - Selected: accentColor (system accent color, default blue) + moderate opacity for clear visibility
-    /// - Hover: primary (adaptive black/white) + very low opacity
+    /// - Hover: handled by native .sidebar style (we do not override hover state manually)
     /// - Normal: fully transparent
     ///
     /// Note: `.listStyle(.sidebar)` provides its own native selection indicator,
@@ -298,9 +276,6 @@ struct SidebarView: View {
                 Color.accentColor
             }
             return baseColor.opacity(0.2)
-        } else if hoveredItem == item {
-            // Hover state: very light gray background, hinting "this is clickable"
-            return Color.primary.opacity(0.08)
         }
         // Normal state: transparent
         return Color.clear

@@ -9,15 +9,20 @@ struct DashboardView: View {
     /// For example, $viewModel.searchText creates a Binding<String>
     @Bindable var viewModel: DashboardViewModel
     @Binding var selectedSkillID: String?
+    /// Agent filter driven by sidebar selection in ContentView.
+    /// Keeping this as an input value preserves one-way data flow from navigation state to list rendering.
+    let selectedAgentFilter: AgentType?
     @Environment(SkillManager.self) private var skillManager
 
     var body: some View {
+        // Compute once per render pass to avoid recalculating filter/sort logic in multiple branches.
+        let filteredSkills = viewModel.filteredSkills(agentFilter: selectedAgentFilter)
         Group {
             if skillManager.isLoading && skillManager.skills.isEmpty {
                 // Show progress indicator on first load
                 ProgressView("Scanning skills...")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if viewModel.filteredSkills.isEmpty {
+            } else if filteredSkills.isEmpty {
                 // Empty state
                 EmptyStateView(
                     icon: "magnifyingglass",
@@ -28,7 +33,7 @@ struct DashboardView: View {
                 )
             } else {
                 // Skill list
-                List(viewModel.filteredSkills, selection: $selectedSkillID) { skill in
+                List(filteredSkills, selection: $selectedSkillID) { skill in
                     SkillRowView(skill: skill)
                         .tag(skill.id)
                         // contextMenu is macOS's right-click menu
@@ -130,7 +135,7 @@ struct DashboardView: View {
     }
 
     private var navigationTitle: String {
-        if let agent = viewModel.selectedAgentFilter {
+        if let agent = selectedAgentFilter {
             return agent.displayName
         }
         return "All Skills"

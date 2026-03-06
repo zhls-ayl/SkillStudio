@@ -62,11 +62,10 @@ struct RepositoryBrowserView: View {
         .task {
             await viewModel.onAppear()
         }
-        // Re-load after sync completes (when repoSyncStatuses changes for this repo)
+        // React to sync status transitions from SkillManager.
+        // This is the single trigger path for post-sync reload/error presentation.
         .onChange(of: skillManager.repoSyncStatuses[viewModel.repository.id]) { _, newStatus in
-            if case .success = newStatus {
-                Task { await viewModel.loadSkills() }
-            }
+            Task { await viewModel.handleSyncStatusChange(newStatus) }
         }
         // Install sheet: same .sheet(item:) pattern as RegistryBrowserView
         .sheet(item: $viewModel.installVM, onDismiss: {

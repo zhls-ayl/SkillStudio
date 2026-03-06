@@ -128,9 +128,14 @@ struct SkillRepository: Codable, Identifiable, Hashable {
 
     /// Full local path to the cloned repository directory.
     /// Expands tilde so Swift's FileManager can use it directly.
-    /// Pattern: ~/.agents/repos/<localSlug>/
+    /// Pattern: ~/.skillstudio/repos/<localSlug>/
+    ///
+    /// Note: this path intentionally reuses `Constants.reposBasePath` instead of
+    /// hardcoding a literal string. The repository storage root was migrated from
+    /// `~/.agents/repos` to `~/.skillstudio/repos`; using Constants ensures model and
+    /// service layers always stay in sync when storage paths evolve.
     var localPath: String {
-        let base = NSString(string: "~/.agents/repos").expandingTildeInPath
+        let base = NSString(string: Constants.reposBasePath).expandingTildeInPath
         return "\(base)/\(localSlug)"
     }
 

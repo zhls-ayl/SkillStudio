@@ -123,7 +123,7 @@ final class RepositoryBrowserViewModel {
     /// on the actor — this keeps file I/O off the main thread.
     ///
     /// - Parameter overrideError: If provided, this message is shown instead of the
-    ///   generic "not yet synced" message. Used by `sync()` to surface actual git errors.
+    ///   generic "not yet synced" message.
     func loadSkills(overrideError: String? = nil) async {
         isLoading = true
         // Only clear errorMessage here if we have no override; the override is shown after this call.
@@ -131,26 +131,19 @@ final class RepositoryBrowserViewModel {
 
         // Delegate to RepositoryManager which handles actor isolation correctly.
         // The `await` suspends this @MainActor task while RepositoryManager does file I/O,
-        // which helps avoid the NSTableView reentrant-delegate warning by not updating the
-        // List's data source inside the same synchronous render pass.
+        // then resumes on the main actor to publish the new snapshot.
         let skills = await skillManager.repositoryManager.scanSkills(in: repository)
 
-        // Defer List data update to next run loop to avoid NSTableView reentrancy warning.
-        // SwiftUI can trigger this warning when we update a List's data source while the
-        // List is still in its layout/render pass (e.g., triggered by a button tap).
-        await Task.yield()
-
         allSkills = skills
-        // If selected skill no longer exists after reload/sync, clear stale selection.
-        if let selectedSkillID, !allSkills.contains(where: { $0.id == selectedSkillID }) {
-            self.selectedSkillID = nil
-        }
+        // Keep selectedSkillID unchanged even if the item is no longer present.
+        // This avoids mutating List(selection:) during data-source refresh.
+        // The detail pane already derives selectedSkill from allSkills and naturally falls back to nil.
         isLoading = false
 
         if let override = overrideError {
             // Show the actual git error (e.g., SSH auth failure, network error)
             errorMessage = override
-        } else if !repository.isCloned && allSkills.isEmpty {
+        } else if !repository.isCloned && allSkills.isEmpty && !isSyncing {
             errorMessage = "Repository not yet synced. Use the Sync button to clone it."
         }
     }
@@ -187,29 +180,46 @@ final class RepositoryBrowserViewModel {
         skillManager.skills.contains { $0.id == skill.id }
     }
 
-    /// Sync this repository (git pull or clone) and reload the skill list.
+    /// Sync this repository (git pull or clone).
     ///
     /// Delegates to SkillManager.syncRepository which updates repoSyncStatuses
     /// (observed by SidebarView for the spinner indicator).
     ///
-    /// After sync, checks whether it succeeded or failed:
-    /// - Success → calls loadSkills() to show newly discovered skills
-    /// - Failure → passes the git error message to loadSkills() so it's visible to the user
-    ///             (e.g., "SSH permission denied", "Host unreachable")
+    /// Sync result handling is centralized in `handleSyncStatusChange(_:)`,
+    /// which is driven by SkillManager's repoSyncStatuses state changes.
+    /// This avoids duplicate reload paths (manual sync completion + status observer).
     func sync() async {
-        errorMessage = nil  // Clear stale error before starting
-        isLoading = true    // Show loading indicator while git clone/pull runs
+        errorMessage = nil
         await skillManager.syncRepository(id: repository.id)
+    }
 
-        // Surface the sync result to the user
-        let status = skillManager.repoSyncStatuses[repository.id]
-        if case .error(let gitError) = status {
-            // Sync failed — show the actual git error (SSH auth issues, network problems, etc.)
-            // Pass it as overrideError so loadSkills() doesn't replace it with the generic message.
-            await loadSkills(overrideError: "Sync failed: \(gitError)")
-        } else {
-            // Success (or unexpected nil status) — reload skills normally
+    /// React to repository sync status transitions.
+    ///
+    /// Best-practice state flow:
+    /// - `sync()` triggers only the domain action (SkillManager.syncRepository)
+    /// - UI data reload is triggered from the single source of truth (`repoSyncStatuses`)
+    ///
+    /// This avoids writing list data from multiple call paths and reduces List/NSTableView
+    /// reentrancy risk during sync operations.
+    ///
+    /// - Parameter newStatus: Latest status from SkillManager.repoSyncStatuses[repository.id]
+    func handleSyncStatusChange(_ newStatus: SkillRepository.SyncStatus?) async {
+        guard let newStatus else { return }
+
+        switch newStatus {
+        case .idle:
+            // No-op state.
+            break
+        case .syncing:
+            // Show loading state while git clone/pull is in progress.
+            isLoading = true
+        case .success:
+            // Reload from local clone after successful sync.
             await loadSkills()
+        case .error(let gitError):
+            // Keep existing list data and surface the sync error.
+            isLoading = false
+            errorMessage = "Sync failed: \(gitError)"
         }
     }
 

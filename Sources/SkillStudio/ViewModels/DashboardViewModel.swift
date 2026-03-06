@@ -16,9 +16,6 @@ final class DashboardViewModel {
     /// Search keyword
     var searchText = ""
 
-    /// Currently selected Agent filter (nil means show all)
-    var selectedAgentFilter: AgentType?
-
     /// Sort order
     var sortOrder: SortOrder = .name
 
@@ -80,9 +77,15 @@ final class DashboardViewModel {
         self.skillManager = skillManager
     }
 
-    /// Calculates the list of skills to display based on current search, filter, and sort conditions
-    /// Computed property: dynamically calculated on each access, similar to Java getter
-    var filteredSkills: [Skill] {
+    /// Calculate the list of skills to display based on current search, external filter, and sort conditions.
+    ///
+    /// `agentFilter` is provided by the parent view (ContentView -> DashboardView),
+    /// which keeps sidebar navigation state as the single source of truth.
+    /// This avoids maintaining duplicated filter state inside the ViewModel.
+    ///
+    /// - Parameter agentFilter: Selected agent type from sidebar (nil means show all)
+    /// - Returns: The filtered and sorted skill array for rendering
+    func filteredSkills(agentFilter: AgentType?) -> [Skill] {
         var result = skillManager.skills
 
         // 1. Search filtering
@@ -91,7 +94,7 @@ final class DashboardViewModel {
         }
 
         // 2. Agent filtering
-        if let agent = selectedAgentFilter {
+        if let agent = agentFilter {
             result = result.filter { skill in
                 skill.installations.contains { $0.agentType == agent }
             }

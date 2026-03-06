@@ -65,7 +65,11 @@ struct ContentView: View {
             } else {
                 // Default: show skill dashboard list
                 if let vm = dashboardVM {
-                    DashboardView(viewModel: vm, selectedSkillID: $selectedSkillID)
+                    DashboardView(
+                        viewModel: vm,
+                        selectedSkillID: $selectedSkillID,
+                        selectedAgentFilter: selectedSidebarItem?.agentFilter
+                    )
                         // Constrain middle column (skill list) width range,
                         // preventing content from being squeezed when first opening
                         .navigationSplitViewColumnWidth(min: 250, ideal: 320, max: 450)
@@ -145,12 +149,6 @@ struct ContentView: View {
         // (e.g., user adds or removes a repository in Settings)
         .onChange(of: skillManager.repositories) { _, _ in
             rebuildRepoVMs()
-        }
-        // .onChange(of:) triggers closure when specified value changes (similar to React's useEffect with dependency array)
-        // When user clicks sidebar navigation item, maps selection to Agent filter and syncs to DashboardViewModel
-        // Implements sidebar click → Dashboard list filter linkage effect
-        .onChange(of: selectedSidebarItem) { _, newValue in
-            dashboardVM?.selectedAgentFilter = newValue?.agentFilter
         }
     }
 

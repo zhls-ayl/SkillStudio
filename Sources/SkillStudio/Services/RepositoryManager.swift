@@ -227,6 +227,17 @@ actor RepositoryManager {
         )
 
         let targetURL = URL(fileURLWithPath: repo.localPath)
+        let targetParentURL = targetURL.deletingLastPathComponent()
+
+        // Ensure target parent directory exists before moving.
+        // `FileManager.moveItem` does NOT create parent directories automatically
+        // (different from `mkdir -p && mv` in shell), so we must prepare it explicitly.
+        // This also protects against future base-path migrations.
+        try FileManager.default.createDirectory(
+            at: targetParentURL,
+            withIntermediateDirectories: true,
+            attributes: nil
+        )
 
         // If a previous partial clone left a directory behind, remove it first
         if FileManager.default.fileExists(atPath: targetURL.path) {
