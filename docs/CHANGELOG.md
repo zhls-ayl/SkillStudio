@@ -1,12 +1,12 @@
 # 变更日志
 
-本文件记录 SkillStudio 的主要变更。
+本文件记录 SkillsMaster 的主要变更。
 
 ## [0.1.0] - 2026-03-04
 
 ### 初始版本
 
-基于 [SkillDeck](https://github.com/crossoverJie/SkillDeck) 重构而来，全面重命名为 SkillStudio。
+基于 [SkillDeck](https://github.com/crossoverJie/SkillDeck) 重构而来，全面重命名为 SkillsMaster。
 
 #### 功能
 

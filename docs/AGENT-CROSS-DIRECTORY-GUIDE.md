@@ -1,6 +1,6 @@
 # Agent 跨目录读取支持开发指南
 
-> **用途**：当某个 AI Agent 能读取其他 Agent 的 skills 目录时，如何在 SkillStudio 中正确实现"继承安装"功能。
+> **用途**：当某个 AI Agent 能读取其他 Agent 的 skills 目录时，如何在 SkillsMaster 中正确实现"继承安装"功能。
 >
 > **参考案例**：Copilot CLI 支持读取 `~/.claude/skills/`（[GitHub 官方文档](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills)）
 
@@ -221,7 +221,7 @@ description: For testing cross-directory reading
 This is a test skill.
 EOF
 
-# 2. 启动 SkillStudio
+# 2. 启动 SkillsMaster
 ./run
 
 # 3. 验证以下内容：
@@ -249,7 +249,7 @@ rm -rf ~/.copilot/skills/test-inherited/
 
 ### 背景
 
-Copilot CLI 会同时读取 `~/.copilot/skills/` 和 `~/.claude/skills/`。但 SkillStudio 此前只检查 Agent 自身目录，导致仅存在于 `~/.claude/skills/` 的 skill 不会显示为 Copilot 可用。
+Copilot CLI 会同时读取 `~/.copilot/skills/` 和 `~/.claude/skills/`。但 SkillsMaster 此前只检查 Agent 自身目录，导致仅存在于 `~/.claude/skills/` 的 skill 不会显示为 Copilot 可用。
 
 ### 修改文件与关键代码
 

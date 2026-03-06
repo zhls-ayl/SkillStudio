@@ -1,16 +1,16 @@
 <p align="center">
-  <img src="Assets/AppIcon2.svg" width="200" alt="SkillStudio App Icon" />
+  <img src="Assets/AppIcon2.svg" width="200" alt="SkillsMaster App Icon" />
 </p>
 
-<h1 align="center">SkillStudio</h1>
+<h1 align="center">SkillsMaster</h1>
 
 <p align="center">
   <em>可视化管理 AI 编程代理 Skills 的原生 macOS 应用</em>
 </p>
 
 <p align="center">
-  <a href="https://github.com/zhls-ayl/SkillStudio/actions/workflows/ci.yml"><img src="https://github.com/zhls-ayl/SkillStudio/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
-  <a href="https://github.com/zhls-ayl/SkillStudio/releases/latest"><img src="https://img.shields.io/github/v/release/zhls-ayl/SkillStudio?include_prereleases" alt="Release" /></a>
+  <a href="https://github.com/zhls-ayl/SkillsMaster/actions/workflows/ci.yml"><img src="https://github.com/zhls-ayl/SkillsMaster/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="https://github.com/zhls-ayl/SkillsMaster/releases/latest"><img src="https://img.shields.io/github/v/release/zhls-ayl/SkillsMaster?include_prereleases" alt="Release" /></a>
   <img src="https://img.shields.io/badge/macOS-14%2B-blue" alt="macOS" />
   <img src="https://img.shields.io/badge/Swift-5.9%2B-orange" alt="Swift" />
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License" />
@@ -20,7 +20,7 @@
 
 ## 项目说明
 
-**SkillStudio** 是一款 macOS 原生桌面应用，提供统一的 GUI 界面来管理多个 AI 编程代理的 Skills。无需手动编辑文件、管理符号链接或解析 YAML。
+**SkillsMaster** 是一款 macOS 原生桌面应用，提供统一的 GUI 界面来管理多个 AI 编程代理的 Skills。无需手动编辑文件、管理符号链接或解析 YAML。
 
 本项目基于 [SkillDeck](https://github.com/crossoverJie/SkillDeck) 重构维护，感谢原作者 [crossoverJie](https://github.com/crossoverJie) 的优秀工作。
 
@@ -43,18 +43,18 @@
 ### Homebrew（推荐）
 
 ```bash
-brew tap zhls-ayl/skillstudio && brew install --cask skillstudio
+brew tap zhls-ayl/skillsmaster && brew install --cask skillsmaster
 ```
 
 ### 下载 Release
 
-从 [GitHub Releases](https://github.com/zhls-ayl/SkillStudio/releases) 下载最新通用二进制：
+从 [GitHub Releases](https://github.com/zhls-ayl/SkillsMaster/releases) 下载最新通用二进制：
 
-1. 下载 `SkillStudio-vX.Y.Z-universal.zip`
-2. 解压后将 `SkillStudio.app` 移至 `/Applications/`
+1. 下载 `SkillsMaster-vX.Y.Z-universal.zip`
+2. 解压后将 `SkillsMaster.app` 移至 `/Applications/`
 3. 首次启动时需要解除 macOS 安全限制：
    ```bash
-   xattr -cr /Applications/SkillStudio.app
+   xattr -cr /Applications/SkillsMaster.app
    ```
    或右键点击应用 → 打开 → 在弹窗中点击"打开"
 
@@ -63,8 +63,8 @@ brew tap zhls-ayl/skillstudio && brew install --cask skillstudio
 需要 macOS 14.0+ (Sonoma)、Xcode 15.0+、Swift 5.9+。
 
 ```bash
-git clone https://github.com/zhls-ayl/SkillStudio.git
-cd SkillStudio
+git clone https://github.com/zhls-ayl/SkillsMaster.git
+cd SkillsMaster
 ./run    # 自动处理目录迁移后常见的 Swift 缓存问题
 
 # 或在 Xcode 中打开

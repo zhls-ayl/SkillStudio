@@ -1,6 +1,6 @@
 # 贡献指南
 
-感谢你对 SkillStudio 的关注！欢迎通过以下方式参与贡献。
+感谢你对 SkillsMaster 的关注！欢迎通过以下方式参与贡献。
 
 ## 开始之前
 
@@ -36,7 +36,7 @@
 
 ## 报告问题
 
-如果你发现了 Bug 或有功能建议，请通过 [GitHub Issues](https://github.com/zhls-ayl/SkillStudio/issues) 提交。
+如果你发现了 Bug 或有功能建议，请通过 [GitHub Issues](https://github.com/zhls-ayl/SkillsMaster/issues) 提交。
 
 提交 Bug 报告时请包含：
 - macOS 版本

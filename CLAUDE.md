@@ -15,7 +15,7 @@ The author has extensive Java/Golang/Python experience but is new to Swift and m
 ```bash
 swift build                  # Development build
 swift build -c release       # Optimized release build
-swift run SkillStudio          # Build and launch the app
+swift run SkillsMaster          # Build and launch the app
 open Package.swift           # Open in Xcode (Cmd+R to run)
 swift test                   # Run all tests
 swift test --filter SkillMDParserTests                    # Run one test class
@@ -80,7 +80,7 @@ Views → ViewModels (@Observable) → SkillManager (@Observable) → Services (
 
 ## Testing
 
-Tests are in `Tests/SkillStudioTests/`. Three test files exist: `SkillMDParserTests`, `LockFileManagerTests`, `SymlinkManagerTests`. Tests use `@testable import SkillStudio` for internal access.
+Tests are in `Tests/SkillsMasterTests/`. Three test files exist: `SkillMDParserTests`, `LockFileManagerTests`, `SymlinkManagerTests`. Tests use `@testable import SkillsMaster` for internal access.
 
 ## Release
 

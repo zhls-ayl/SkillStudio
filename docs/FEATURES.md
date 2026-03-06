@@ -62,7 +62,7 @@
 | Feature | Description |
 |---------|-------------|
 | Lock File Read/Write | Reads and writes `~/.agents/.skill-lock.json`, preserving all existing fields |
-| Cache Management | Maintains `~/.agents/.skillstudio-cache.json` for commit hash caching |
+| Cache Management | Maintains `~/.agents/.skillsmaster-cache.json` for commit hash caching |
 | Atomic Writes | File writes use atomic operations to prevent data corruption |
 
 ### File System Monitoring
@@ -115,6 +115,6 @@
 - [ ] **F21 — Settings Sync**: iCloud or git-based settings synchronization across machines
 - [x] **App Icon**: Custom app icon design
 - [ ] **Notarized DMG**: Signed and notarized distribution package
-- [x] **Homebrew Cask**: `brew install --cask skillstudio` distribution
+- [x] **Homebrew Cask**: `brew install --cask skillsmaster` distribution
 - [ ] **Markdown Rendering**: Rich markdown rendering in detail view (currently shows source)
 - [ ] **Dark Mode Polish**: Fine-tuned dark mode color adjustments
