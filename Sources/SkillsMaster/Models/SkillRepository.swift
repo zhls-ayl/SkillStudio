@@ -10,7 +10,7 @@ import Foundation
 /// - monorepo: One repo contains multiple skills in subdirectories (each with SKILL.md)
 /// - singleSkill: Repo root contains a SKILL.md (equivalent to a single skill)
 ///
-/// Conforms to Codable for JSON serialization to `~/.agents/.skillsmaster-repos.json`.
+/// 通过 `Codable` 序列化到 `~/.skillsmaster/.skillsmaster-repos.json`。
 /// Conforms to Identifiable so SwiftUI's ForEach can use it directly.
 struct SkillRepository: Codable, Identifiable, Hashable {
 

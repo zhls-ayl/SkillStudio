@@ -3,8 +3,8 @@ import Foundation
 /// SkillScanner is responsible for scanning the file system to discover all installed skills
 ///
 /// Scanning strategy:
-/// 1. First scan ~/.skillsmaster/skills/ (canonical storage directory)
-/// 2. Then scan ~/.agents/skills/ (legacy directory, for transition period compatibility)
+/// 1. 先扫描 `~/.skillsmaster/skills/`（当前 canonical 存储目录）
+/// 2. 再扫描 `~/.agents/skills/`（兼容旧数据与附加读取规则的旧目录）
 /// 3. Then scan each Agent's skills directory
 /// 4. Deduplicate via skill id: if a skill with the same name is found in multiple locations,
 ///    merge their installations into a single Skill model
@@ -12,12 +12,12 @@ import Foundation
 /// This is similar to filepath.Walk in Go for traversing directory trees
 actor SkillScanner {
 
-    /// Canonical skills directory (~/.skillsmaster/skills/)
+    /// 当前 canonical skills 目录（`~/.skillsmaster/skills/`）
     /// Delegates to AgentType.sharedSkillsDirectoryURL for single source of truth
     static let sharedSkillsURL: URL = AgentType.sharedSkillsDirectoryURL
 
-    /// Legacy shared skills directory (~/.agents/skills/) — scanned during transition period
-    /// to catch any skills that weren't migrated (e.g. migration failure or manual placement)
+    /// 旧共享 skills 目录（`~/.agents/skills/`）。
+    /// 这里继续保留扫描，是为了兼容尚未迁移的数据以及手工放置到旧目录的 skill。
     static let legacySkillsURL: URL = AgentType.legacySharedSkillsDirectoryURL
 
     /// Scan all skills, returning deduplicated results
@@ -37,7 +37,7 @@ actor SkillScanner {
             skillMap[skill.id] = skill
         }
 
-        // 1.5. Scan legacy directory (~/.agents/skills/) for transition period compatibility
+        // 1.5. 扫描旧目录（`~/.agents/skills/`），兼容仍在旧路径上的数据
         // Skills placed here (manually or by external tools) should still be discovered.
         // Only add skills not already found in the new canonical directory (dedup by id).
         if Self.legacySkillsURL.path != Self.sharedSkillsURL.path {

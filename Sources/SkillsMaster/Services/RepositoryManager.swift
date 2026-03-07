@@ -205,7 +205,7 @@ actor RepositoryManager {
     /// Because `GitService` is a separate actor, `await gitService.cloneRepo(…)`
     /// *suspends* this actor's task and releases its thread — so `scanSkills` and
     /// other methods can run concurrently while git is cloning in the GitService actor.
-    /// After cloning, we move the temp directory to the permanent `~/.agents/repos/<slug>/` path.
+    /// clone 成功后，会把临时目录移动到长期保存路径 `~/.skillsmaster/repos/<slug>/`。
     private func cloneDirectly(repo: SkillRepository, httpAuthorization: String?) async throws {
         // Full clone (not shallow) so `git pull` works later.
         // gitService.cloneRepo clones to /tmp/SkillsMaster-<UUID>/ first.
@@ -333,7 +333,7 @@ actor RepositoryManager {
         }
     }
 
-    /// Ensure ~/.agents/repos/ directory exists.
+    /// 确保 `~/.skillsmaster/repos/` 目录存在。
     private func createReposDirectoryIfNeeded() throws {
         try FileManager.default.createDirectory(
             atPath: reposBasePath,

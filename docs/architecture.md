@@ -27,9 +27,9 @@ SkillsMaster 是一个基于 SwiftUI 的 macOS 应用，用于管理多代理 Sk
 - 提交哈希缓存：`~/.skillsmaster/.skillsmaster-cache.json`（迁移后私有缓存）
 
 其中需要特别注意：
-- `~/.skillsmaster/skills` 是 SkillsMaster 自己维护的canonical 目录
+- `~/.skillsmaster/skills` 是 SkillsMaster 自己维护的 canonical 目录
 - `~/.agents/.skill-lock.json` 仍保留在旧位置，以兼容外部工具
-- 扫描阶段仍会兼容读取 `~/.agents/skills`，用于迁移期与跨代理读取场景
+- 扫描阶段仍会兼容读取 `~/.agents/skills`，用于兼容旧数据以及部分 Agent 的附加读取规则
 
 ## 代理与兼容策略
 `AgentType` 定义了当前受支持代理、检测命令、主目录与附加可读目录。不是所有代理都只读取自己的目录：
@@ -45,17 +45,17 @@ SkillsMaster 是一个基于 SwiftUI 的 macOS 应用，用于管理多代理 Sk
 ## 仓库与安装链路
 当前安装来源分为三类：
 - 注册表技能：通过 `SkillRegistryService` 获取索引，再进入安装流程
-- 远程仓库安装：通过 `GitService` 克隆 / 扫描 / 拷贝到canonical 目录
+- 远程仓库安装：通过 `GitService` 克隆 / 扫描 / 拷贝到 canonical 目录
 - 自定义仓库：由 `RepositoryManager` 管理配置与同步，由 `RepositoryBrowserViewModel` 驱动安装
 
-统一安装后都会落到canonical 目录，再由 `SymlinkManager` 处理代理侧链接，并由 `LockFileManager` 更新 lock file。
+统一安装后都会落到 canonical 目录，再由 `SymlinkManager` 处理代理侧链接，并由 `LockFileManager` 更新 lock file。
 
 ## 更新链路
 - 技能更新：`GitService` + `SkillContentFetcher` + `CommitHashCache`
 - 应用自更新：`UpdateChecker` 读取 GitHub Release，下载 zip 并替换 `.app`
 - 发布打包：`scripts/package-app.sh`、`scripts/release.sh`、`.github/workflows/release.yml`
 
-## high-risk 区域
+## 高风险区域
 以下区域文档、代码和测试必须同步：
 - `MigrationManager.swift`：历史路径迁移与兼容
 - `LockFileManager.swift`：lock file 格式与原子写入

@@ -38,8 +38,8 @@ enum Constants {
     }
 
     /// Shared skills directory path (SkillsMaster private canonical storage)
-    /// Migrated from ~/.agents/skills/ to ~/.skillsmaster/skills/ to avoid overlap
-    /// with Agent-readable directories (e.g. Codex reads ~/.agents/skills/)
+    /// 当前 canonical skills 目录。
+    /// 之所以放在 `~/.skillsmaster/skills/`，是为了避免与部分 Agent 会直接读取的目录重叠。
     static let sharedSkillsPath = "~/.skillsmaster/skills"
 
     /// Lock file path — stays in ~/.agents/ because it is shared with npx skills CLI

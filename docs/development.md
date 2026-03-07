@@ -40,7 +40,7 @@ swift package clean
 ## 测试要求
 - 代码改动默认要补测试，尤其是：
   - 代理目录规则
-  - lock file读写
+  - lock file 读写
   - symbolic link 判断
   - Git URL 解析与仓库扫描
   - Markdown / `SKILL.md` 解析

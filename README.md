@@ -10,7 +10,7 @@ SkillsMaster 是一个 macOS 原生应用，用统一的图形界面管理多种
 - 从远程仓库、注册表或自定义仓库安装 Skills
 - 管理代理分配、symbolic link、lock file 与更新检查
 - 监控文件系统变更，并在 UI 中自动刷新
-- 支持应用主题切换、自身版本检查与 release 打包链路
+- 支持应用主题切换、自身版本检查与 Release 打包链路
 
 ## 环境要求
 - macOS 14+

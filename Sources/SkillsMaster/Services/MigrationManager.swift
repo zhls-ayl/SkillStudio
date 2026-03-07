@@ -14,19 +14,19 @@ enum MigrationManager {
 
     // MARK: - Old paths (before migration)
 
-    /// Old canonical skills directory
+    /// 旧 canonical skills 目录
     private static let oldSkillsDir: URL = {
         let path = NSString(string: "~/.agents/skills").expandingTildeInPath
         return URL(fileURLWithPath: path)
     }()
 
-    /// Old cache file
+    /// 旧 cache 文件
     private static let oldCachePath: URL = {
         let path = NSString(string: "~/.agents/.skillsmaster-cache.json").expandingTildeInPath
         return URL(fileURLWithPath: path)
     }()
 
-    /// Old repos config file
+    /// 旧 repository 配置文件
     private static let oldReposConfigPath: URL = {
         let path = NSString(string: "~/.agents/.skillsmaster-repos.json").expandingTildeInPath
         return URL(fileURLWithPath: path)
@@ -40,7 +40,7 @@ enum MigrationManager {
 
     // MARK: - New paths (after migration)
 
-    /// New canonical skills directory (matches AgentType.sharedSkillsDirectoryURL)
+    /// 新 canonical skills 目录（与 `AgentType.sharedSkillsDirectoryURL` 一致）
     private static let newSkillsDir = AgentType.sharedSkillsDirectoryURL
 
     /// New SkillsMaster base directory
@@ -49,10 +49,10 @@ enum MigrationManager {
         return URL(fileURLWithPath: path)
     }()
 
-    /// New cache file path (matches CommitHashCache.defaultPath)
+    /// 新 cache 文件路径（与 `CommitHashCache.defaultPath` 一致）
     private static let newCachePath = CommitHashCache.defaultPath
 
-    /// New repos config path
+    /// 新 repository 配置路径
     private static let newReposConfigPath: URL = {
         let path = NSString(string: Constants.skillReposConfigPath).expandingTildeInPath
         return URL(fileURLWithPath: path)
@@ -73,11 +73,10 @@ enum MigrationManager {
     static func migrateIfNeeded() {
         let fm = FileManager.default
 
-        // Quick check: if old skills directory doesn't exist, nothing to migrate
-        // (other files like cache/repos are secondary — if skills dir is gone, likely a fresh install)
+        // 快速判断：如果旧 skills 目录不存在，就说明当前无需迁移。
         guard fm.fileExists(atPath: oldSkillsDir.path) else { return }
 
-        // Ensure new base directory exists (~/.skillsmaster/)
+        // 确保新的基准目录 `~/.skillsmaster/` 已存在。
         try? fm.createDirectory(at: newBaseDir, withIntermediateDirectories: true)
 
         // 1. Migrate skill directories (real directories only, not symbolic links)
@@ -94,8 +93,8 @@ enum MigrationManager {
 
     // MARK: - Private Helpers
 
-    /// Move skill directories from old canonical location to new location.
-    /// Only moves real directories (not symbolic links) — symbolic links in ~/.agents/skills/ are
+    /// 把 skill 目录从旧 canonical 位置迁移到新位置。
+    /// 这里只移动真实目录，不移动 symbolic link。
     /// typically created by agents like Codex and should be left alone.
     private static func migrateSkillDirectories() {
         let fm = FileManager.default
@@ -117,7 +116,7 @@ enum MigrationManager {
             guard !fm.fileExists(atPath: newURL.path) else { continue }
 
             // Only move real directories (not symbolic links)
-            // Symlinks in ~/.agents/skills/ may belong to agents that read this directory
+            // `~/.agents/skills/` 中的 symbolic link 可能属于仍会读取该目录的 Agents。
             guard !SymlinkManager.isSymlink(at: itemURL) else { continue }
 
             // Move directory to new location
@@ -126,8 +125,7 @@ enum MigrationManager {
         }
     }
 
-    /// Fix symbolic links in all Agent skills directories that point to old canonical path.
-    /// Recreates them to point to the new canonical path instead.
+    /// 修复所有仍指向旧 canonical 路径的 Agent symbolic link，并重新指向新路径。
     private static func fixAgentSymlinks() {
         let fm = FileManager.default
 

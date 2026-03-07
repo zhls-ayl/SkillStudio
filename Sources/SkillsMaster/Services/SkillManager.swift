@@ -122,7 +122,7 @@ final class SkillManager {
         // Load custom repositories config from disk (fast — JSON read only)
         repositories = await repositoryManager.loadAll()
 
-        // Trigger background sync for all repos configured with "sync on launch" (clone/pull).
+        // 为启用了“启动时同步”的 repositories 触发后台同步（clone / pull）。
         // `Task { }` creates a detached child task that runs concurrently,
         // similar to Go's `go func(){}` — we don't await it here.
         Task { await syncAllRepositories() }
@@ -136,10 +136,9 @@ final class SkillManager {
             agents = await detectedAgents
             var allSkills = try await scannedSkills
 
-            // Populate lock file information
-            // Invalidate cache first to ensure we read the latest data from disk.
-            // External tools (e.g., npx skills) may have modified the lock file since our last read,
-            // without invalidating, read() returns stale cached data missing newly installed skills.
+            // 读取并填充 lock file 信息。
+            // 这里会先使 cache 失效，确保读到磁盘上的最新数据。
+            // 外部工具（例如 `npx skills`）可能已经修改了 lock file。
             await lockFileManager.invalidateCache()
             if await lockFileManager.exists {
                 if let lockFile = try? await lockFileManager.read() {
@@ -194,7 +193,7 @@ final class SkillManager {
     /// Start watching file system, monitor all relevant directories
     private func startWatching() {
         var paths: [URL] = [SkillScanner.sharedSkillsURL]
-        // Also watch legacy directory during transition period
+        // 同时监听旧目录，兼容仍然落在旧路径上的数据
         // (users or external tools may still place skills there)
         if SkillScanner.legacySkillsURL.path != SkillScanner.sharedSkillsURL.path,
            FileManager.default.fileExists(atPath: SkillScanner.legacySkillsURL.path) {
@@ -687,7 +686,7 @@ final class SkillManager {
     /// 6. Write to commitHashCache (linkedSkills + skills two maps)
     /// 7. refresh() to refresh UI
     ///
-    /// Link info is stored in SkillsMaster private cache (~/.agents/.skillsmaster-cache.json),
+    /// Link 信息存储在 SkillsMaster 私有 cache（`~/.skillsmaster/.skillsmaster-cache.json`）中，
     /// does not modify skill-lock.json (to avoid affecting npx skills behavior).
     /// During refresh(), link info is read from cache and synthesized into LockEntry on Skill model,
     /// thus reusing existing update check flow.

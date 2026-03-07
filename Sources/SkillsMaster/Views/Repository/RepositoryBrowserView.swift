@@ -5,7 +5,7 @@ import SwiftUI
 /// Occupies the "content" (middle) column of NavigationSplitView when a custom repo
 /// is selected in the sidebar. The layout and patterns mirror RegistryBrowserView.
 ///
-/// Data source: the locally cloned Git repository at `~/.agents/repos/<slug>/`.
+/// 数据来源：本地已 clone 的 Git repository，路径位于 `~/.skillsmaster/repos/<slug>/`。
 /// Skills are discovered by scanning for SKILL.md files — no network requests needed
 /// for browsing. A network request (git pull via SSH) only happens on explicit sync.
 struct RepositoryBrowserView: View {
