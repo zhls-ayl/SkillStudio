@@ -15,7 +15,7 @@ SkillsMaster 是一个基于 SwiftUI 的 macOS 应用，用于管理多代理 Sk
 1. `SkillsMasterApp` 注入全局 `SkillManager`
 2. `ContentView` 首次出现时执行迁移：`MigrationManager.migrateIfNeeded()`
 3. 随后调用 `SkillManager.refresh()`
-4. `refresh()` 负责加载仓库配置、检测已安装代理、扫描 Skills、关联lock file、触发自定义仓库后台同步
+4. `refresh()` 负责加载仓库配置、检测已安装代理、扫描 Skills、关联 lock file、触发自定义仓库后台同步
 5. `FileSystemWatcher` 监听目录变化，变更后再次触发 `refresh()`
 
 ## 数据与存储约定
@@ -48,7 +48,7 @@ SkillsMaster 是一个基于 SwiftUI 的 macOS 应用，用于管理多代理 Sk
 - 远程仓库安装：通过 `GitService` 克隆 / 扫描 / 拷贝到canonical 目录
 - 自定义仓库：由 `RepositoryManager` 管理配置与同步，由 `RepositoryBrowserViewModel` 驱动安装
 
-统一安装后都会落到canonical 目录，再由 `SymlinkManager` 处理代理侧链接，并由 `LockFileManager` 更新lock file。
+统一安装后都会落到canonical 目录，再由 `SymlinkManager` 处理代理侧链接，并由 `LockFileManager` 更新 lock file。
 
 ## 更新链路
 - 技能更新：`GitService` + `SkillContentFetcher` + `CommitHashCache`
@@ -58,8 +58,8 @@ SkillsMaster 是一个基于 SwiftUI 的 macOS 应用，用于管理多代理 Sk
 ## high-risk 区域
 以下区域文档、代码和测试必须同步：
 - `MigrationManager.swift`：历史路径迁移与兼容
-- `LockFileManager.swift`：lock file格式与原子写入
-- `SymlinkManager.swift`：symbolic link创建、解析、删除与继承判断
+- `LockFileManager.swift`：lock file 格式与原子写入
+- `SymlinkManager.swift`：symbolic link 创建、解析、删除与继承判断
 - `RepositoryManager.swift` / `RepositoryCredentialStore.swift`：仓库配置与凭据存储
 - `UpdateChecker.swift`：应用下载、替换、重启流程
 - `scripts/` 与 `.github/workflows/`：打包、发布、Homebrew 自动更新

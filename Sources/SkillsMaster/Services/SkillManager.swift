@@ -70,7 +70,7 @@ final class SkillManager {
     /// Keyed by repository UUID; used by SidebarView and RepositoryBrowserView to show spinner/error.
     var repoSyncStatuses: [UUID: SkillRepository.SyncStatus] = [:]
 
-    // MARK: - App Update State (application self-update status)
+    // MARK: - App Update State (application update status)
 
     /// Latest release info (nil means no update available or not yet checked)
     /// Multiple Views need access (Settings About page, SidebarView toolbar reminder icon),
@@ -95,7 +95,7 @@ final class SkillManager {
     private let detector = AgentDetector()
     private let lockFileManager = LockFileManager()
     private let watcher = FileSystemWatcher()
-    /// Application self-update checker (GitHub Release check, download, install)
+    /// Application update checker (GitHub Release check, download, install)
     private let updateChecker = UpdateChecker()
     /// F10/F12: Git operations service for installation and update checking
     private let gitService = GitService()
@@ -227,16 +227,16 @@ final class SkillManager {
     /// Delete a skill
     ///
     /// Deletion flow:
-    /// 1. Remove direct installation symlinks from all Agents (skip inherited installations)
+    /// 1. Remove direct installation symbolic links from all Agents (skip inherited installations)
     /// 2. Delete canonical directory (actual files)
     /// 3. Update lock file
     /// 4. Refresh data
     ///
-    /// Inherited installation symlinks don't need separate deletion: they point to symlinks in the source Agent directory,
-    /// and the source Agent's symlink will be deleted in step 1; even if not deleted, after the canonical directory is removed
-    /// they become dangling symlinks, which don't affect functionality
+    /// Inherited installation symbolic links don't need separate deletion: they point to symbolic links in the source Agent directory,
+    /// and the source Agent's symbolic link will be deleted in step 1; even if not deleted, after the canonical directory is removed
+    /// they become dangling symbolic links, which don't affect functionality
     func deleteSkill(_ skill: Skill) async throws {
-        // 1. Remove all direct installation symlinks (skip inherited installations)
+        // 1. Remove all direct installation symbolic links (skip inherited installations)
         for installation in skill.installations where installation.isSymlink && !installation.isInherited {
             try SymlinkManager.removeSymlink(
                 skillName: skill.id,
@@ -271,13 +271,13 @@ final class SkillManager {
 
     // MARK: - F06: Agent Assignment (Toggle Symlink)
 
-    /// Install skill to specified Agent (create symlink)
+    /// Install skill to specified Agent (create symbolic link)
     func assignSkill(_ skill: Skill, to agent: AgentType) async throws {
         try SymlinkManager.createSymlink(from: skill.canonicalURL, to: agent)
         await refresh()
     }
 
-    /// Uninstall skill from specified Agent (delete symlink)
+    /// Uninstall skill from specified Agent (delete symbolic link)
     func unassignSkill(_ skill: Skill, from agent: AgentType) async throws {
         try SymlinkManager.removeSymlink(skillName: skill.id, from: agent)
         await refresh()
@@ -285,13 +285,13 @@ final class SkillManager {
 
     /// Toggle skill installation status on specified Agent
     ///
-    /// Each Agent only manages its own directory's symlink — SkillsMaster never touches
+    /// Each Agent only manages its own directory's symbolic link — SkillsMaster never touches
     /// another Agent's directory. Cross-directory reading is each Agent's own runtime
     /// behavior, which SkillsMaster does not interfere with.
     ///
     /// Toggle behavior:
-    /// - Has direct install (symlink in agent's own dir) → remove it
-    /// - No direct install (regardless of inherited status) → create symlink in agent's own dir
+    /// - Has direct install (symbolic link in agent's own dir) → remove it
+    /// - No direct install (regardless of inherited status) → create symbolic link in agent's own dir
     /// - If agent only has an inherited installation, toggling ON creates a direct install (override)
     ///
     /// IMPORTANT: We check the file system directly instead of relying on skill.installations,
@@ -305,17 +305,17 @@ final class SkillManager {
         // causing the Binding closure's captured `skill` to have outdated installation data.
         //
         // Use isSymlink OR fileExists to cover all cases:
-        // - isSymlink: detects symlinks including dangling ones (uses lstat, does NOT follow links)
-        // - fileExists: detects real directories (follows symlinks, so needed for non-symlink case)
+        // - isSymlink: detects symbolic links including dangling ones (uses lstat, does NOT follow links)
+        // - fileExists: detects real directories (follows symbolic links, so needed for non-symbolic link case)
         let targetURL = agent.skillsDirectoryURL.appendingPathComponent(skill.id)
         let hasDirectInstall = SymlinkManager.isSymlink(at: targetURL)
             || FileManager.default.fileExists(atPath: targetURL.path)
 
         if hasDirectInstall {
-            // Something exists at agent's skills dir → remove it (symlink or real directory)
+            // Something exists at agent's skills dir → remove it (symbolic link or real directory)
             try await unassignSkill(skill, from: agent)
         } else {
-            // Nothing exists → create symlink in this agent's own directory
+            // Nothing exists → create symbolic link in this agent's own directory
             // This works whether the agent has an inherited installation or not
             try await assignSkill(skill, to: agent)
         }
@@ -328,7 +328,7 @@ final class SkillManager {
     /// Installation flow:
     /// 1. Get tree hash (for lock file recording, subsequent update detection)
     /// 2. Copy files to canonical directory (~/.skillsmaster/skills/<name>/)
-    /// 3. Create symlinks for selected Agents
+    /// 3. Create symbolic links for selected Agents
     /// 4. Create/update lock file entry
     /// 5. Refresh UI
     ///
@@ -376,9 +376,9 @@ final class SkillManager {
         // copyItem is like cp -r, recursively copies entire directory
         try fm.copyItem(at: sourceDir, to: canonicalDir)
 
-        // 3. Create symlinks for selected Agents
+        // 3. Create symbolic links for selected Agents
         for agent in targetAgents {
-            // Use try? to ignore existing symlink errors (idempotent operation)
+            // Use try? to ignore existing symbolic link errors (idempotent operation)
             try? SymlinkManager.createSymlink(from: canonicalDir, to: agent)
         }
 
@@ -868,7 +868,7 @@ final class SkillManager {
         }
     }
 
-    // MARK: - App Update (application self-update)
+    // MARK: - App Update (application update flow)
 
     /// Check if SkillsMaster app itself has a new version
     ///

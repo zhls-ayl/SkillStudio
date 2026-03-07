@@ -1,13 +1,13 @@
 import Foundation
 
-/// SymlinkManager is responsible for creating and removing symlinks (F06 Agent Assignment)
+/// SymlinkManager is responsible for creating and removing symbolic links (F06 Agent Assignment)
 ///
 /// Core Concepts:
 /// - The "real copy" of all skills is stored in ~/.skillsmaster/skills/ (canonical location)
-/// - Each Agent references the shared skill via symlink
+/// - Each Agent references the shared skill via symbolic link
 /// - Example: ~/.claude/skills/agent-notifier -> ~/.skillsmaster/skills/agent-notifier
 ///
-/// symlink is similar to Linux/macOS `ln -s`, a special file pointing to another file/directory
+/// symbolic link is similar to Linux/macOS `ln -s`, a special file pointing to another file/directory
 enum SymlinkManager {
 
     enum SymlinkError: Error, LocalizedError {
@@ -25,12 +25,12 @@ enum SymlinkManager {
             case .targetDirectoryNotFound(let url):
                 "Agent skills directory not found: \(url.path)"
             case .removalFailed(let url, let error):
-                "Failed to remove symlink at \(url.path): \(error.localizedDescription)"
+                "Failed to remove symbolic link at \(url.path): \(error.localizedDescription)"
             }
         }
     }
 
-    /// Create symlink for skill to specified Agent's skills directory
+    /// Create symbolic link for skill to specified Agent's skills directory
     ///
     /// - Parameters:
     ///   - source: canonical path of the skill (e.g. ~/.skillsmaster/skills/agent-notifier/)
@@ -60,12 +60,12 @@ enum SymlinkManager {
             throw SymlinkError.targetAlreadyExists(targetURL)
         }
 
-        // 4. Create symlink
+        // 4. Create symbolic link
         // createSymbolicLink is equivalent to ln -s source targetURL
         try fm.createSymbolicLink(at: targetURL, withDestinationURL: source)
     }
 
-    /// Remove symlink of a skill under specified Agent
+    /// Remove symbolic link of a skill under specified Agent
     ///
     /// - Parameters:
     ///   - skillName: skill directory name
@@ -75,9 +75,9 @@ enum SymlinkManager {
         let fm = FileManager.default
         let targetURL = agent.skillsDirectoryURL.appendingPathComponent(skillName)
 
-        // Verify path is indeed a symlink to avoid deleting real directory by mistake
+        // Verify the path is really a symbolic link to avoid deleting real directory by mistake
         guard isSymlink(at: targetURL) else {
-            return // Not a symlink, return silently
+            return // Not a symbolic link, return silently
         }
 
         do {
@@ -87,9 +87,9 @@ enum SymlinkManager {
         }
     }
 
-    /// Check if given path is a symlink
+    /// Check whether the given path is a symbolic link
     ///
-    /// FileManager.fileExists automatically resolves symlinks (follows links),
+    /// FileManager.fileExists automatically resolves symbolic links (follows links),
     /// so we need to use attributesOfItem to read file attributes directly to judge
     static func isSymlink(at url: URL) -> Bool {
         let fm = FileManager.default
@@ -100,18 +100,18 @@ enum SymlinkManager {
         return fileType == .typeSymbolicLink
     }
 
-    /// Resolve real path pointed to by symlink (recursively resolve multi-level symlink chain)
+    /// Resolve the real path pointed to by a symbolic link (recursively resolve multi-level symbolic link chain)
     ///
     /// Use URL.resolvingSymlinksInPath() instead of single-level destinationOfSymbolicLink,
-    /// to correctly handle multi-level symlink chains. Example:
+    /// to correctly handle multi-level symbolic link chains. Example:
     ///   ~/.copilot/skills/foo → ~/.claude/skills/foo → ~/.agents/skills/foo
     /// resolvingSymlinksInPath() will recursively resolve to the final real path ~/.agents/skills/foo
     ///
-    /// If not a symlink, return original path (standardized)
+    /// If the path is not a symbolic link, return the original standardized path
     static func resolveSymlink(at url: URL) -> URL {
-        // resolvingSymlinksInPath() is a recursive symlink resolution method provided by Foundation,
+        // resolvingSymlinksInPath() is a recursive symbolic link resolution method provided by Foundation,
         // similar to Python's os.path.realpath() or Go's filepath.EvalSymlinks()
-        // It will follow symlinks until the final real path is found
+        // It will follow symbolic links until the final real path is found
         return url.resolvingSymlinksInPath()
     }
 
@@ -142,8 +142,8 @@ enum SymlinkManager {
 
             let isLink = isSymlink(at: skillURL)
 
-            // If it's a symlink, verify it ultimately points to the same canonical location
-            // Use resolvingSymlinksInPath() to recursively resolve, handling multi-level symlink chains
+            // If it's a symbolic link, verify it ultimately points to the same canonical location
+            // Use resolvingSymlinksInPath() to recursively resolve, handling multi-level symbolic link chains
             if isLink {
                 let resolved = resolveSymlink(at: skillURL)
                 // standardized normalizes path (removes .. and . etc)
@@ -156,7 +156,7 @@ enum SymlinkManager {
                     agentsWithDirectInstallation.insert(agentType)
                 }
             } else {
-                // Not a symlink, means it's an original file (agent-local skill)
+                // Not a symbolic link, means it's an original file (agent-local skill)
                 installations.append(SkillInstallation(
                     agentType: agentType,
                     path: skillURL,
@@ -180,7 +180,7 @@ enum SymlinkManager {
                     continue
                 }
 
-                // Verify this path (after resolving symlink) indeed points to the same canonical skill
+                // Verify this path (after resolving symbolic link) indeed points to the same canonical skill
                 let resolved: URL
                 if isSymlink(at: skillURL) {
                     resolved = resolveSymlink(at: skillURL)

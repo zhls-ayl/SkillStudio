@@ -3,7 +3,7 @@ import XCTest
 
 /// SymlinkManager 的单元测试
 ///
-/// 测试策略：在临时目录中创建模拟的 skill 目录和 symlink
+/// 测试策略：在临时目录中创建模拟的 skill 目录和 symbolic link
 /// 注意：这些测试需要文件系统权限
 final class SymlinkManagerTests: XCTestCase {
 
@@ -22,7 +22,7 @@ final class SymlinkManagerTests: XCTestCase {
 
     // MARK: - isSymlink Tests
 
-    /// 测试检测 symlink
+    /// 测试检测 symbolic link
     func testIsSymlink() throws {
         let fm = FileManager.default
 
@@ -30,7 +30,7 @@ final class SymlinkManagerTests: XCTestCase {
         let sourceDir = tempDir.appendingPathComponent("source")
         try fm.createDirectory(at: sourceDir, withIntermediateDirectories: true)
 
-        // 创建 symlink
+        // 创建 symbolic link
         let linkPath = tempDir.appendingPathComponent("link")
         try fm.createSymbolicLink(at: linkPath, withDestinationURL: sourceDir)
 
@@ -47,7 +47,7 @@ final class SymlinkManagerTests: XCTestCase {
 
     // MARK: - resolveSymlink Tests
 
-    /// 测试解析 symlink
+    /// 测试解析 symbolic link
     func testResolveSymlink() throws {
         let fm = FileManager.default
 
@@ -61,7 +61,7 @@ final class SymlinkManagerTests: XCTestCase {
         XCTAssertEqual(resolved.standardized.path, sourceDir.standardized.path)
     }
 
-    /// 测试解析非 symlink 路径（应该返回原路径）
+    /// 测试解析非 symbolic link 路径（应该返回原路径）
     func testResolveNonSymlink() throws {
         let dir = tempDir.appendingPathComponent("normal-dir")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

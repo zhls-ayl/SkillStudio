@@ -111,7 +111,7 @@ struct DashboardView: View {
             }
         } message: {
             if let skill = viewModel.skillToDelete {
-                Text("Are you sure you want to delete \"\(skill.displayName)\"? This will remove the skill directory and all symlinks. This action cannot be undone.")
+                Text("Are you sure you want to delete \"\(skill.displayName)\"? This will remove the skill directory and all symbolic links. This action cannot be undone.")
             }
         }
         // Error message

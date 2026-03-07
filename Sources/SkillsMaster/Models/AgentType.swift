@@ -172,7 +172,7 @@ enum AgentType: String, CaseIterable, Identifiable, Codable {
     }
 
     /// SkillsMaster private canonical skills directory URL (~/.skillsmaster/skills/)
-    /// All skill files are stored here; Agent directories contain symlinks pointing to this location.
+    /// All skill files are stored here; Agent directories contain symbolic links pointing to this location.
     /// Migrated from ~/.agents/skills/ to avoid overlap with Agent-readable directories.
     static let sharedSkillsDirectoryURL: URL = {
         let path = NSString(string: "~/.skillsmaster/skills").expandingTildeInPath
@@ -192,7 +192,7 @@ enum AgentType: String, CaseIterable, Identifiable, Codable {
     /// This is the "Single Source of Truth" for cross-directory reading rules.
     /// These rules describe each Agent's runtime behavior (which directories it scans for skills).
     /// SkillsMaster uses this information for display only (inheritance hints) — it does NOT
-    /// interfere with cross-reading by creating/removing symlinks in other Agents' directories.
+    /// interfere with cross-reading by creating/removing symbolic links in other Agents' directories.
     ///
     /// sourceAgent is set to the current agent itself because the inheritance is that agent's
     /// own behavior, not controlled by another agent. This field is used for UI display only.

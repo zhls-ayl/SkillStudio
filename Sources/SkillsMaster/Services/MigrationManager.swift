@@ -10,7 +10,7 @@ import Foundation
 /// - Cache file:               ~/.agents/.skillsmaster-cache.json → ~/.skillsmaster/.skillsmaster-cache.json
 /// - Repos config:             ~/.agents/.skillsmaster-repos.json → ~/.skillsmaster/.skillsmaster-repos.json
 /// - Repos clones:             ~/.agents/repos/             → ~/.skillsmaster/repos/
-/// - Agent symlinks:           updated to point to new canonical path
+/// - Agent symbolic links:           updated to point to new canonical path
 /// - Lock file:                NOT migrated (stays at ~/.agents/.skill-lock.json, shared with npx skills)
 ///
 /// Uses `enum` as a namespace (no instances) with static methods.
@@ -85,10 +85,10 @@ enum MigrationManager {
         // Ensure new base directory exists (~/.skillsmaster/)
         try? fm.createDirectory(at: newBaseDir, withIntermediateDirectories: true)
 
-        // 1. Migrate skill directories (real directories only, not symlinks)
+        // 1. Migrate skill directories (real directories only, not symbolic links)
         migrateSkillDirectories()
 
-        // 2. Fix Agent symlinks to point to new canonical path
+        // 2. Fix Agent symbolic links to point to new canonical path
         fixAgentSymlinks()
 
         // 3. Migrate SkillsMaster private files
@@ -100,7 +100,7 @@ enum MigrationManager {
     // MARK: - Private Helpers
 
     /// Move skill directories from old canonical location to new location.
-    /// Only moves real directories (not symlinks) — symlinks in ~/.agents/skills/ are
+    /// Only moves real directories (not symbolic links) — symbolic links in ~/.agents/skills/ are
     /// typically created by agents like Codex and should be left alone.
     private static func migrateSkillDirectories() {
         let fm = FileManager.default
@@ -121,7 +121,7 @@ enum MigrationManager {
             // Skip if already exists at new location (idempotent)
             guard !fm.fileExists(atPath: newURL.path) else { continue }
 
-            // Only move real directories (not symlinks)
+            // Only move real directories (not symbolic links)
             // Symlinks in ~/.agents/skills/ may belong to agents that read this directory
             guard !SymlinkManager.isSymlink(at: itemURL) else { continue }
 
@@ -131,7 +131,7 @@ enum MigrationManager {
         }
     }
 
-    /// Fix symlinks in all Agent skills directories that point to old canonical path.
+    /// Fix symbolic links in all Agent skills directories that point to old canonical path.
     /// Recreates them to point to the new canonical path instead.
     private static func fixAgentSymlinks() {
         let fm = FileManager.default
@@ -149,7 +149,7 @@ enum MigrationManager {
             for itemURL in contents {
                 guard SymlinkManager.isSymlink(at: itemURL) else { continue }
 
-                // Read one-level symlink destination (not recursive resolve)
+                // Read one-level symbolic link destination (not recursive resolve)
                 // We want to check if the immediate target is in the old canonical dir
                 guard let destination = try? fm.destinationOfSymbolicLink(atPath: itemURL.path) else {
                     continue
@@ -160,11 +160,11 @@ enum MigrationManager {
                 if destination.hasPrefix("/") {
                     absoluteDest = destination
                 } else {
-                    // Relative symlink — resolve against the symlink's parent directory
+                    // Relative symbolic link — resolve against the symbolic link's parent directory
                     absoluteDest = agentDir.appendingPathComponent(destination).standardized.path
                 }
 
-                // Check if symlink points to old canonical directory
+                // Check if symbolic link points to old canonical directory
                 let oldPrefix = oldSkillsDir.path
                 guard absoluteDest.hasPrefix(oldPrefix) else { continue }
 
@@ -175,7 +175,7 @@ enum MigrationManager {
                 // Only relink if new target exists (migration step 1 moved it there)
                 guard fm.fileExists(atPath: newTarget.path) else { continue }
 
-                // Remove old symlink and create new one pointing to new canonical path
+                // Remove old symbolic link and create new one pointing to new canonical path
                 try? fm.removeItem(at: itemURL)
                 try? fm.createSymbolicLink(at: itemURL, withDestinationURL: newTarget)
             }

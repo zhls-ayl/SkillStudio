@@ -24,7 +24,7 @@ swift package clean
 ## 开发流程
 1. 先确认需求、范围、风险点与交付物
 2. 阅读相关 `Service` / `ViewModel` / `View` / `Tests`
-3. 判断是否涉及路径、迁移、锁文件、仓库同步、发布脚本等高风险区域
+3. 判断是否涉及路径、迁移、lock file、仓库同步、Release 脚本等高风险区域
 4. 做最小可验证变更（minimal change）
 5. 补充或更新相邻测试用例
 6. 更新对应文档
@@ -40,8 +40,8 @@ swift package clean
 ## 测试要求
 - 代码改动默认要补测试，尤其是：
   - 代理目录规则
-  - 锁文件读写
-  - 符号链接判断
+  - lock file读写
+  - symbolic link 判断
   - Git URL 解析与仓库扫描
   - Markdown / `SKILL.md` 解析
   - ViewModel 的状态转换

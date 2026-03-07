@@ -10,7 +10,7 @@ enum SkillScope: Hashable, Identifiable {
     /// Shared: directly installed to 2+ Agents, genuinely shared across Agents
     case shared
 
-    /// Agent local: only exists in a specific Agent's skills directory (not symlink)
+    /// Agent local: only exists in a specific Agent's skills directory (not symbolic link)
     case agentLocal(AgentType)
 
     /// Project level: located in project directory .agents/skills/ or .claude/skills/

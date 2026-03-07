@@ -10,7 +10,7 @@
 - `docs/roadmap.md`：确认哪些能力已经落地，哪些仍未实现
 
 ## 文档更新规则
-- 改架构、路径、迁移、扫描、仓库同步、锁文件：更新 `docs/architecture.md`
+- 改架构、路径、迁移、扫描、仓库同步、lock file：更新 `docs/architecture.md`
 - 改开发流程、测试方式、编码约束：更新 `docs/development.md`
 - 改脚本、发布流程、产物名称、版本策略：更新 `docs/release.md`
 - 改能力边界、已实现功能、明确未实现项：更新 `docs/roadmap.md`

@@ -24,7 +24,7 @@ actor SkillScanner {
     /// - Returns: Array of discovered skills (deduplicated, each skill name appears only once)
     func scanAll() async throws -> [Skill] {
         // Use skill id (directory name) as deduplication key, not canonicalURL.path
-        // Reason: the same skill might be pointed to by different Agent symlinks to different physical paths
+        // Reason: the same skill might be pointed to by different Agent symbolic links to different physical paths
         // e.g. ~/.copilot/skills/agent-notifier -> /path/to/dev/agent-notifier
         //      ~/.agents/skills/agent-notifier   (another physical path)
         // Although canonicalURL is different, skill id is the same, should be treated as same skill
@@ -127,7 +127,7 @@ actor SkillScanner {
         let fm = FileManager.default
         let skillName = url.lastPathComponent
 
-        // Resolve symlink to get canonical path
+        // Resolve symbolic link to get canonical path
         let canonicalURL: URL
         if SymlinkManager.isSymlink(at: url) {
             canonicalURL = SymlinkManager.resolveSymlink(at: url)

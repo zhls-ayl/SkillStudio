@@ -1,7 +1,7 @@
 import Foundation
 
 /// SkillInstallation records the installation status of a skill under an Agent
-/// A skill can be installed to multiple Agents via symlink
+/// A skill can be installed to multiple Agents via symbolic link
 ///
 /// Two types of installation:
 /// - Direct installation (isInherited == false): skill exists in the Agent's own skills directory
@@ -10,7 +10,7 @@ import Foundation
 struct SkillInstallation: Identifiable, Hashable {
     let agentType: AgentType
     let path: URL              // Path of the skill in this Agent's skills directory
-    let isSymlink: Bool        // Whether it is a symlink (not an original file)
+    let isSymlink: Bool        // Whether it is a symbolic link (not an original file)
     /// Whether it is an inherited installation (from another Agent's directory, not this Agent's own directory)
     /// Inherited installations are shown as read-only in UI, cannot be toggled
     let isInherited: Bool

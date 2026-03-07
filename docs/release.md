@@ -36,7 +36,7 @@ swift test
 - `README.md`
 
 ## Homebrew
-仓库内 `homebrew/skillsmaster.rb` 是 cask 模板参考；实际自动更新由 release workflow 推送到 tap 仓库完成。
+仓库内 `homebrew/skillsmaster.rb` 是 cask 模板参考；实际自动更新由 Release workflow 推送到 tap 仓库完成。
 
 如果发布流程调整，需要特别确认：
 - 下载 URL 模式是否仍匹配 Release 产物

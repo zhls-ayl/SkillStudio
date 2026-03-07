@@ -28,9 +28,9 @@ swift test
 ## 代码结构概览
 - `Sources/SkillsMaster/`：应用源码
 - `Tests/SkillsMasterTests/`：单元测试
-- `scripts/`：打包、发布与图标相关脚本
+- `scripts/`：打包、Release 与图标相关脚本
 - `docs/`：工程文档
-- `.github/workflows/`：CI / Release 自动化
+- `.github/workflows/`：CI / Release workflow
 
 ## 文档导航入口
 - `docs/README.md`：文档总览
@@ -42,4 +42,4 @@ swift test
 ## 开发原则与约束
 - 文档必须反映当前实现，不能把过时设计继续当成事实。
 - 修改代码后优先补测试；修改行为后同步补文档。
-- 涉及路径迁移、仓库同步、锁文件、发布脚本时，按高风险改动处理。
+- 涉及路径迁移、仓库同步、lock file、Release 脚本时，按高风险改动处理。

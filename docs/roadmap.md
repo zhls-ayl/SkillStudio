@@ -5,7 +5,7 @@
 - 多代理检测与本地 Skills 扫描
 - 三栏式 Dashboard / Detail / Sidebar 原生界面
 - `SKILL.md` 解析、编辑与 Markdown 渲染
-- 从 Git 仓库安装 Skills，并写入规范目录与锁文件
+- 从 Git 仓库安装 Skills，并写入规范目录与lock file
 - 注册表浏览与安装
 - 自定义仓库配置、同步、浏览与本地安装
 - 技能更新检查、提交哈希缓存与差异链接

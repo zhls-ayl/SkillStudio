@@ -1,4 +1,4 @@
-# release.yml — 标签触发的自动化发布工作流
+# release.yml — 标签触发的自动化 Release workflow
 #
 # 当推送 v* 格式的 tag 时（如 v1.0.0），自动执行：
 #   1. 运行测试确保代码质量
@@ -76,7 +76,7 @@ jobs:
           name: ${{ github.ref_name }}
 
   # Homebrew cask 自动更新
-  # 在 release 成功后，自动更新 homebrew-skillsmaster 仓库的 cask 文件
+  # 在 Release 成功后，自动更新 homebrew-skillsmaster 仓库的 cask 文件
   # 独立 job：失败不影响已发布的 Release，可单独重跑
   # 使用 ubuntu-latest（只需编辑文本+git push，不需要 macOS）
   update-homebrew:

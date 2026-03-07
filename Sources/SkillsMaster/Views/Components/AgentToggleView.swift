@@ -3,7 +3,7 @@ import SwiftUI
 /// AgentToggleView displays installation status toggles for skill on each Agent (F06)
 ///
 /// Design principles:
-/// - Each Agent only manages its own directory's symlink (Toggle ON = create, OFF = remove)
+/// - Each Agent only manages its own directory's symbolic link (Toggle ON = create, OFF = remove)
 /// - Cross-directory reading is each Agent's own runtime mechanism — SkillsMaster does not interfere
 /// - Inheritance hints are always shown (regardless of toggle state) to inform users
 ///   that an Agent may still read the skill via another directory even after toggle OFF
@@ -33,7 +33,7 @@ struct AgentToggleView: View {
     /// Get display paths where this Agent can additionally read the given skill.
     ///
     /// Checks each directory in the Agent's additionalReadableSkillsDirectories to see
-    /// if the skill exists there (either directly or via symlink pointing to the same canonical path).
+    /// if the skill exists there (either directly or via symbolic link pointing to the same canonical path).
     /// Returns abbreviated paths like "~/.claude/skills" for UI display.
     private func inheritanceDisplayPaths(for agentType: AgentType) -> [String] {
         var paths: [String] = []
@@ -71,7 +71,7 @@ struct AgentToggleView: View {
 /// which was broken because SwiftUI's `.onChange` fires asynchronously (deferred to the
 /// next view update cycle), so the guard flag was already reset to false when the
 /// onChange closure ran. This caused FileSystemWatcher-triggered refreshes to create
-/// spurious toggle tasks that re-created symlinks the user had just removed.
+/// spurious toggle tasks that re-created symbolic links the user had just removed.
 private struct AgentToggleRow: View {
 
     let agentType: AgentType

@@ -1,13 +1,14 @@
 # SkillsMaster 工程协作指南
 
 本仓库中的默认角色不是“通用代码助手”，而是 **SkillsMaster 的主要负责人 / 开发工程师**。
-当前主要目标是：围绕真实实现维护 `SkillsMaster` 这款 macOS 原生应用，持续保持 **代码、测试、脚本、文档、release 链路** 一致，不允许文档继续脱离实现。
+当前主要目标是：围绕真实实现维护 `SkillsMaster` 这款 macOS 原生应用，持续保持 **代码、测试、脚本、文档、Release 链路** 一致，不允许文档继续脱离实现。
 
 ## 工作准则
 - 在开始具体设计、编码、重构、删除文档或执行高影响操作前，先与用户确认待澄清点；确认后再行动。
 - 默认遵循“真实对齐实现、最小必要变更、可验证、可回退”的原则，不凭旧文档做推断。
 - 任何用户可见行为、开发流程、路径约定、发布方式发生变化时，必须同步更新文档。
 - 发现文档、注释、脚本与代码不一致时，应以“先核对代码，再修正文档”为原则处理。
+- 文档与注释默认使用中文；专业术语统一保留 English，并在全仓库维持固定写法。
 
 ## 仓库定位
 本仓库用于维护 `SkillsMaster`：一个用于管理多种 AI 编程代理 Skills 的原生 macOS 应用。
@@ -17,15 +18,15 @@
 - 单元测试：`Tests/SkillsMasterTests/`
 - 打包与发布脚本：`scripts/`、`run`
 - 文档：`README.md`、`docs/`
-- 自动化工作流：`.github/workflows/`
+- 自动化 workflow：`.github/workflows/`
 - Homebrew cask 模板：`homebrew/skillsmaster.rb`
 
 ## 默认职责范围
 处理本仓库任务时，默认覆盖以下范围：
 - 维护基于 SwiftUI + MVVM 的应用结构与边界
 - 维护 Skills 扫描、安装、删除、更新、仓库同步与文件监控能力
-- 维护多代理目录兼容、符号链接、锁文件与迁移逻辑
-- 维护测试、打包、发布、Homebrew 与 app update 链路
+- 维护多代理目录兼容、symbolic link、lock file 与迁移逻辑
+- 维护测试、打包、Release、Homebrew 与 app update 链路
 - 维护仓库文档结构，使其持续反映当前实现
 
 ## 代码结构边界
@@ -44,7 +45,7 @@
 - `docs/README.md`：文档索引与更新规则
 - `docs/architecture.md`：真实架构、数据流、路径与高风险区域
 - `docs/development.md`：开发命令、测试策略、提交流程、文档更新要求
-- `docs/release.md`：打包、发布、GitHub Actions、Homebrew 维护
+- `docs/release.md`：打包、Release、GitHub Actions、Homebrew 维护
 - `docs/roadmap.md`：当前已交付能力与明确未实现项
 
 处理任务时，必须判断改动会影响哪些文档：
@@ -74,7 +75,7 @@
 以下改动默认视为高风险，设计与执行前都应先确认：
 - `~/.skillsmaster/` 与 `~/.agents/` 相关路径、迁移与兼容逻辑
 - `~/.agents/.skill-lock.json`、缓存文件、仓库配置文件的读写格式
-- 符号链接创建、删除、去重与继承安装判断
+- symbolic link 创建、删除、去重与继承安装判断
 - 自定义仓库同步、凭据存储与 Git 操作
 - `scripts/package-app.sh`、`scripts/release.sh`、`.github/workflows/`、`homebrew/skillsmaster.rb`
 - 应用自更新下载、替换与重启流程

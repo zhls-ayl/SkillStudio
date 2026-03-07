@@ -9,7 +9,7 @@ struct Skill: Identifiable, Hashable {
     /// Unique identifier: skill directory name (e.g., "agent-notifier")
     let id: String
 
-    /// Canonical path (real path after resolving symlink)
+    /// Canonical path (real path after resolving symbolic link)
     /// e.g., ~/.skillsmaster/skills/agent-notifier/
     let canonicalURL: URL
 
@@ -22,7 +22,7 @@ struct Skill: Identifiable, Hashable {
     /// Scope: Global shared / Agent local / Project level
     var scope: SkillScope
 
-    /// Which Agents this skill is installed to (possibly via symlink)
+    /// Which Agents this skill is installed to (possibly via symbolic link)
     var installations: [SkillInstallation]
 
     /// Entry in lock file (can be nil, indicating not installed via package manager)

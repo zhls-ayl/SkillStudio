@@ -1,11 +1,11 @@
 #!/bin/bash
-# release.sh — Create git tag and push to GitHub to trigger release build
+# release.sh — Create git tag and push to GitHub to trigger the Release workflow
 #
 # Features:
 #   1. Check if working directory is clean (prevent forgetting to commit code)
 #   2. Check if current branch is pushed to remote
 #   3. Validate version format (semantic versioning x.y.z)
-#   4. Check if tag already exists (prevent duplicate releases)
+#   4. Check if tag already exists (prevent duplicate Release tags)
 #   5. Create annotated git tag and push to GitHub
 #   6. Pushing will automatically trigger .github/workflows/release.yml workflow
 #
@@ -100,7 +100,7 @@ ok "Working directory is clean"
 BRANCH=$(git branch --show-current)
 info "Current branch: ${BRANCH}"
 
-# Usually recommended to release from main branch, but not enforced
+# Usually recommended to Release from main branch, but not enforced
 if [[ "$BRANCH" != "main" && "$BRANCH" != "master" ]]; then
     warn "Not on main/master branch (current: ${BRANCH})"
     # -r allows read backslash, -p shows prompt
@@ -173,7 +173,7 @@ fi
 
 # ── Create annotated tag ──────────────────────────────────────────
 # -a creates annotated tag, storing extra metadata (author, date, message)
-# Compared to lightweight tag, annotated tag is better for version release
+# Compared to lightweight tag, annotated tag is better for Release
 # -m specifies tag message
 info "Creating tag ${TAG} ..."
 git tag -a "$TAG" -m "Release ${TAG}"
@@ -205,7 +205,7 @@ else
 fi
 
 echo ""
-echo "  The release workflow will:"
+echo "  The Release workflow will:"
 echo "    1. Run tests"
 echo "    2. Build universal binary (.app)"
 echo "    3. Create GitHub Release with zip download"
