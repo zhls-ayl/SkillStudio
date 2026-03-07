@@ -1,35 +1,35 @@
 import SwiftUI
 
-/// SkillDetailView is the skill detail page (F03)
+/// `SkillDetailView` 是 F03 对应的 skill 详情页。
 ///
-/// Displays complete skill information, including:
-/// - Basic info (name, description, author, version)
-/// - Agent assignment status (toggleable)
-/// - Markdown body
-/// - Lock file info
-/// - Action buttons (edit, delete, open in Finder/Terminal)
+/// 页面会展示完整的 skill 信息，包括：
+/// - 基础信息（name、description、author、version）
+/// - Agent assignment 状态（可切换）
+/// - Markdown 正文
+/// - lock file 信息
+/// - 操作按钮（edit、delete、open in Finder / Terminal）
 struct SkillDetailView: View {
 
     let skillID: String
     @Bindable var viewModel: SkillDetailViewModel
     @Environment(SkillManager.self) private var skillManager
 
-    /// Editor ViewModel (created only during editing)
+    /// 编辑时才创建的 `Editor ViewModel`。
     @State private var editorVM: SkillEditorViewModel?
 
-    /// Copy path button feedback state: shows green checkmark when true, auto-resets after 1.5 seconds
+    /// 复制路径按钮的反馈状态：为 `true` 时显示绿色勾选，1.5 秒后自动恢复。
     @State private var pathCopied = false
 
     var body: some View {
-        // SwiftUI version of guard-let: show empty state if skill doesn't exist
+        // 这里相当于 SwiftUI 版的 `guard let`：如果 skill 不存在，就直接展示 empty state。
         if let skill = viewModel.skill(id: skillID) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Header info
+                    // 头部信息区。
                     headerSection(skill)
 
-                    // Package Info (with update status) - placed first, visible when entering detail page
-                    // Show full package info when lockEntry exists; otherwise show manual repo linking UI
+                    // Package 信息区（含 update 状态），进入详情页后优先展示。
+                    // 如果存在 `lockEntry`，展示完整 package 信息；否则展示手动关联 repo 的 UI。
                     Divider()
                     if let lockEntry = skill.lockEntry {
                         lockFileSection(skill, lockEntry)
@@ -39,12 +39,12 @@ struct SkillDetailView: View {
 
                     Divider()
 
-                    // Agent assignment section
+                    // Agent assignment 区域。
                     agentAssignmentSection(skill)
 
                     Divider()
 
-                    // Markdown body
+                    // Markdown 正文区域。
                     markdownSection(skill)
                 }
                 .padding()
@@ -52,7 +52,7 @@ struct SkillDetailView: View {
             .navigationTitle(skill.displayName)
             .toolbar {
                 ToolbarItemGroup {
-                    // Reveal in Finder
+                    // 在 Finder 中定位。
                     Button {
                         viewModel.revealInFinder(skill: skill)
                     } label: {
@@ -60,7 +60,7 @@ struct SkillDetailView: View {
                     }
                     .help("Reveal in Finder")
 
-                    // Open in Terminal
+                    // 在 Terminal 中打开。
                     Button {
                         viewModel.openInTerminal(skill: skill)
                     } label: {
@@ -68,7 +68,7 @@ struct SkillDetailView: View {
                     }
                     .help("Open in Terminal")
 
-                    // Edit button
+                    // 编辑按钮。
                     Button {
                         let vm = SkillEditorViewModel(skillManager: skillManager)
                         vm.load(skill: skill)
@@ -80,7 +80,7 @@ struct SkillDetailView: View {
                     .help("Edit SKILL.md")
                 }
             }
-            // sheet is macOS modal dialog (slides in from top)
+            // `sheet` 是 macOS 的 modal dialog。
             .sheet(isPresented: $viewModel.isEditing) {
                 if let editorVM {
                     SkillEditorView(
@@ -101,7 +101,7 @@ struct SkillDetailView: View {
 
     // MARK: - Sections
 
-    /// Header info section
+    /// 头部信息区。
     @ViewBuilder
     private func headerSection(_ skill: Skill) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -119,7 +119,7 @@ struct SkillDetailView: View {
                     .foregroundStyle(.secondary)
             }
 
-            // Metadata row
+            // metadata 行。
             HStack(spacing: 16) {
                 if let author = skill.metadata.author {
                     Label(author, systemImage: "person")
@@ -134,7 +134,7 @@ struct SkillDetailView: View {
             .font(.subheadline)
             .foregroundStyle(.secondary)
 
-            // Path display + copy button
+            // 路径展示与复制按钮。
             HStack(spacing: 4) {
                 Text(skill.canonicalURL.tildeAbbreviatedPath)
                     .font(.caption)
@@ -146,39 +146,37 @@ struct SkillDetailView: View {
                 // .generalPasteboard gets the system general clipboard (source of user's Cmd+V paste)
                 Button {
                     let pasteboard = NSPasteboard.general
-                    // clearContents() must be called before setString to clear old content
+                    // 调用 `setString` 之前先执行 `clearContents()`，清掉旧内容。
                     pasteboard.clearContents()
-                    // Write full path (expanding ~ to absolute path for terminal use)
+                    // 写入完整绝对路径，便于 Terminal 或脚本直接使用。
                     pasteboard.setString(skill.canonicalURL.path, forType: .string)
 
-                    // Set copy success state, icon temporarily changes to green checkmark
+                    // 设置复制成功状态，图标会暂时切换为绿色勾选。
                     pathCopied = true
-                    // Task.sleep is non-blocking delay in Swift concurrency (like Python's asyncio.sleep)
-                    // Auto-restore original icon after 1.5 seconds
+                    // `Task.sleep` 是 Swift concurrency 中的非阻塞延迟。
+                    // 1.5 秒后自动恢复原始图标。
                     Task {
                         try? await Task.sleep(for: .seconds(1.5))
                         pathCopied = false
                     }
                 } label: {
-                    // contentTransition(.symbolEffect(.replace)) makes SF Symbol icon
-                    // use system built-in replacement animation (fade + scale) when switching, more natural than manual animation
-                    // Swift's ternary requires both sides to have same type; .green is Color, .tertiary is
-                    // HierarchicalShapeStyle, cannot mix directly. Use AnyShapeStyle type erasure to unify types.
+                    // `contentTransition(.symbolEffect(.replace))` 会为 SF Symbol 切换提供系统内置替换动画。
+                    // 这里使用 `AnyShapeStyle` 做 type erasure，统一 `.green` 和 `.tertiary` 的类型。
                     Image(systemName: pathCopied ? "checkmark" : "doc.on.doc")
                         .font(.caption)
                         .foregroundStyle(pathCopied ? AnyShapeStyle(.green) : AnyShapeStyle(.tertiary))
                         .contentTransition(.symbolEffect(.replace))
                 }
-                // .plain button style removes default border and background, looks like an icon
+                // `.plain` button style 会移除默认边框和背景，让按钮看起来更像纯图标。
                 .buttonStyle(.plain)
                 .help("Copy path to clipboard")
-                // animation modifier listens to pathCopied changes, automatically applies smooth transition to colors and other properties
+                // `animation` 会监听 `pathCopied` 的变化，并为颜色等属性应用平滑过渡。
                 .animation(.easeInOut(duration: 0.2), value: pathCopied)
             }
         }
     }
 
-    /// Agent assignment section (F06)
+    /// Agent assignment 区域。 (F06)
     @ViewBuilder
     private func agentAssignmentSection(_ skill: Skill) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -189,7 +187,7 @@ struct SkillDetailView: View {
         }
     }
 
-    /// Markdown body section
+    /// Markdown 正文区域。
     @ViewBuilder
     private func markdownSection(_ skill: Skill) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -201,27 +199,25 @@ struct SkillDetailView: View {
                     .foregroundStyle(.tertiary)
                     .italic()
             } else {
-                // MarkdownContentView parses and renders markdown asynchronously:
-                // - Document(parsing:) runs on a background thread via .task(id:)
-                // - LazyVStack defers rendering of off-screen nodes
-                // - A lightweight "Rendering..." placeholder is shown during parsing
-                // This prevents blocking the main thread with CoreText layout
-                // for large markdown bodies, eliminating the 1-3s render stall.
+                // `MarkdownContentView` 会异步解析并渲染 Markdown：
+                // - `Document(parsing:)` 通过 `.task(id:)` 在后台执行
+                // - `LazyVStack` 会延迟渲染屏幕外节点
+                // - 解析期间显示轻量的 “Rendering...” 占位文案
+                // 这样可以避免大段 Markdown 在主线程触发明显卡顿。
                 MarkdownContentView(markdownText: skill.markdownBody)
             }
         }
     }
 
-    /// Manual repository linking section — displayed when skill has no lockEntry
+    /// 手动关联 repository 的区域：仅在 skill 没有 `lockEntry` 时展示。
     ///
-    /// Allows user to input GitHub repository address ("owner/repo" or full URL),
-    /// after linking SkillsMaster can check for updates. Link info stored in private cache, does not modify lock file.
+    /// 用户可以输入 GitHub repository 地址（`owner/repo` 或完整 URL）。
+    /// 关联完成后，SkillsMaster 就能为该 skill 执行更新检查。关联信息只写入私有 cache，不会修改 `lock file`。
     @ViewBuilder
     private func linkToRepoSection(_ skill: Skill) -> some View {
-        // Read all @Observable properties into local variables to avoid
-        // multiple accesses of @Observable properties causing AttributeGraph dependency cycles in deep ViewBuilder nesting.
-        // SwiftUI's AttributeGraph creates dependency edges for each property access,
-        // local variables only trigger dependency tracking once, reducing the probability of cycles.
+        // 先把 `@Observable` 属性读到本地变量里，避免在深层 `ViewBuilder` 中多次访问时
+        // 触发 `AttributeGraph` 的依赖环。
+        // 本地变量只会建立一次依赖追踪，可以降低循环依赖出现的概率。
         let isLinking = viewModel.isLinking
         let linkError = viewModel.linkError
         let inputIsEmpty = viewModel.repoURLInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -234,10 +230,10 @@ struct SkillDetailView: View {
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
-            // Input row: TextField + Link button
+            // 输入区：`TextField` + `Link` 按钮。
             HStack(spacing: 8) {
-                // $viewModel.repoURLInput two-way binding for input content
-                // @Bindable property wrapper allows @Observable object properties to support $ syntax binding
+                // `$viewModel.repoURLInput` 是输入内容的双向绑定。
+                // `@Bindable` 让 `@Observable` 对象的属性也能支持 `$` 语法。
                 TextField("owner/repo", text: $viewModel.repoURLInput)
                     .textFieldStyle(.roundedBorder)
                     // .onSubmit triggers when user presses return (similar to HTML input's onKeyDown Enter)

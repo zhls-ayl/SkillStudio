@@ -1,15 +1,15 @@
 import XCTest
 @testable import SkillsMaster
 
-/// Unit tests for SkillContentFetcher — the actor that fetches SKILL.md from GitHub
+/// `SkillContentFetcher` 的单元测试。
 ///
-/// These tests verify URL construction, candidate URL generation, and cache key logic
-/// without making actual network requests.
-/// Network-dependent behavior (fetch success/failure, branch fallback) requires integration tests
-/// or mock injection, which is complex with Swift's `actor` type.
+/// 这些测试只验证纯逻辑部分，例如 URL 构造、candidate URL 生成和 cache key 规则，
+/// 不会真的发起 network request。
 ///
-/// XCTest is Swift's testing framework (similar to JUnit or Go's testing package).
-/// Test methods must start with "test" prefix. Use XCTAssert* for assertions.
+/// 依赖网络结果的行为（例如 fetch 成功 / 失败、branch fallback）更适合放到 integration test
+/// 或通过 mock 注入验证，而这对当前 `actor` 结构来说成本更高。
+///
+/// 测试框架使用 `XCTest`，测试方法必须以 `test` 开头，并通过 `XCTAssert*` 系列断言验证结果。
 final class SkillContentFetcherTests: XCTestCase {
 
     // MARK: - URL Construction Tests

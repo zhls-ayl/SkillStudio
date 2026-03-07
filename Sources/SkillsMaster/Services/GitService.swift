@@ -1,13 +1,12 @@
 import Foundation
 import Dispatch
 
-/// GitService encapsulates all git CLI operations, core infrastructure for F10 (One-Click Install) and F12 (Update Check)
+/// `GitService` 封装了仓库内所有 git CLI 操作，是 F10（One-Click Install）和 F12（Update Check）的基础设施。
 ///
-/// Uses `actor` type for thread safety, as git operations involve temporary directories and filesystem read/write,
-/// actor ensures only one task executes git commands at a time, avoiding data races.
-/// actor is similar to Go's goroutine + channel pattern, but with compiler-enforced safety.
+/// 由于 git 操作会涉及临时目录、filesystem read/write 和外部进程调用，
+/// 这里使用 `actor` 保证 thread safety，避免多个任务同时执行 git 命令导致 data race。
 ///
-/// Design pattern: Reuse the Process API pattern verified in AgentDetector to execute external commands
+/// 实现上复用了 `AgentDetector` 已验证过的 `Process` 调用模式，用统一方式执行外部命令。
 actor GitService {
 
     /// Max time to wait for a single git command.
@@ -55,7 +54,7 @@ actor GitService {
         let skillMDPath: String
         /// Parsed SKILL.md metadata
         let metadata: SkillMetadata
-        /// Markdown body of SKILL.md
+        /// Markdown 正文区域。 of SKILL.md
         let markdownBody: String
     }
 

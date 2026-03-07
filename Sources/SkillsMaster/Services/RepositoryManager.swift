@@ -1,16 +1,15 @@
 import Foundation
 
-/// RepositoryManager manages user-configured custom Git repositories as Skills sources.
+/// `RepositoryManager` 负责管理用户配置的 custom Git repositories，并把它们作为 Skills 来源。
 ///
-/// Responsibilities:
-/// - Persist repository configurations to `~/.agents/.skillsmaster-repos.json`
-/// - Clone new repositories to `~/.agents/repos/<slug>/`
-/// - Pull updates for already-cloned repositories
-/// - Scan cloned repositories to discover available Skills
+/// 主要职责包括：
+/// - 持久化 repository 配置
+/// - clone 新仓库到本地目录
+/// - 对已 clone 的仓库执行 pull
+/// - 扫描本地仓库，发现可安装的 Skills
 ///
-/// Uses `actor` for thread safety — file I/O and git operations run on a background thread,
-/// and actor ensures only one operation executes at a time (no data races).
-/// This is the same pattern used by LockFileManager and GitService.
+/// 由于这里会同时涉及 file I/O 与 git 操作，使用 `actor` 可以避免并发下的 data race，
+/// 这也是本项目中 `LockFileManager`、`GitService` 等组件采用的同一模式。
 actor RepositoryManager {
 
     // MARK: - Error Types

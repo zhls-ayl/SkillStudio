@@ -1,23 +1,14 @@
 import Foundation
 
-/// CommitHashCache is a private commit hash cache service for SkillsMaster
+/// `CommitHashCache` 是 SkillsMaster 私有的 commit hash cache service。
 ///
-/// **Design Decision**: Do not modify the `.skill-lock.json` format to avoid polluting files shared with `npx skills`.
-/// SkillsMaster stores commit hashes independently in `~/.agents/.skillsmaster-cache.json`,
-/// so `npx skills add/remove` operations remain unaffected.
+/// 这里有一个明确的设计决策：**不修改** `\.skill-lock.json` 的格式，
+/// 避免污染需要与 `npx skills` 共享的 `lock file`。
 ///
-/// File format:
-/// ```json
-/// {
-///   "skills": {
-///     "skill-name": "abc123def456...",
-///     "another-skill": "789xyz..."
-///   }
-/// }
-/// ```
+/// 因此，SkillsMaster 会把 commit hash 单独存到自己的 cache 文件中，
+/// 让 `npx skills add/remove` 与 SkillsMaster 的私有状态彼此解耦。
 ///
-/// Uses `actor` to ensure thread safety, as multiple operations may read/write the cache file simultaneously.
-/// An actor is similar to Go's goroutine + mutex; the compiler automatically ensures only one method executes at a time.
+/// 由于多个流程可能同时读写 cache 文件，这里使用 `actor` 保证 thread safety。
 actor CommitHashCache {
 
     // MARK: - Data Types

@@ -1,34 +1,34 @@
 import SwiftUI
 
-/// ContentView is the root view of the application
+/// `ContentView` 是应用的 root view。
 ///
-/// NavigationSplitView is macOS's three-column navigation layout (similar to Apple Mail):
-/// - Left column (sidebar): navigation menu
-/// - Middle column (content): list
-/// - Right column (detail): details
+/// `NavigationSplitView` 是 macOS 常见的三栏布局，类似 Apple Mail：
+/// - 左栏：sidebar navigation
+/// - 中栏：content list
+/// - 右栏：detail pane
 ///
-/// @Environment retrieves injected objects from the View tree (similar to React's useContext)
-/// SkillManager is injected via .environment() in SkillsMasterApp.swift
+/// 这里通过 `@Environment` 从 `View` tree 中读取注入的依赖，
+/// `SkillManager` 由 `SkillsMasterApp.swift` 中的 `.environment()` 统一注入。
 struct ContentView: View {
 
     @Environment(SkillManager.self) private var skillManager
 
-    /// Sidebar visibility state for NavigationSplitView
+    /// `NavigationSplitView` 的栏位可见性状态。
     @State private var columnVisibility = NavigationSplitViewVisibility.all
 
-    /// Currently selected sidebar item
+    /// 当前选中的 sidebar item。
     @State private var selectedSidebarItem: SidebarItem? = .dashboard
 
-    /// Currently selected skill ID (used for navigation to detail page)
+    /// 当前选中的 skill ID，用于驱动 detail 页面导航。
     @State private var selectedSkillID: String?
 
-    /// Dashboard ViewModel
+    /// Dashboard 对应的 `ViewModel`。
     @State private var dashboardVM: DashboardViewModel?
 
-    /// Detail ViewModel
+    /// Detail 对应的 `ViewModel`。
     @State private var detailVM: SkillDetailViewModel?
 
-    /// F09: Registry browser ViewModel
+    /// F09：Registry Browser 对应的 `ViewModel`。
     /// Created alongside other VMs in .task; manages leaderboard browsing and search
     @State private var registryVM: RegistryBrowserViewModel?
 
@@ -42,41 +42,41 @@ struct ContentView: View {
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
-            // Left column: sidebar navigation
+            // 左栏：sidebar navigation。
             // navigationSplitViewColumnWidth constrains sidebar width range,
             // preventing content from being clipped when sidebar is too narrow after window restoration
             SidebarView(selection: $selectedSidebarItem)
                 .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 300)
         } content: {
-            // Middle column: content varies based on sidebar selection
-            // F09: When "Registry" is selected, show RegistryBrowserView instead of DashboardView
+            // 中栏：根据 sidebar selection 展示不同 content。
+            // F09：当选中 “Registry” 时，显示 `RegistryBrowserView` 而不是 `DashboardView`。
             if selectedSidebarItem == .registry {
-                // F09: Registry browser — browse and search skills.sh catalog
+                // F09：Registry Browser，用于浏览和搜索 `skills.sh` catalog。
                 if let vm = registryVM {
                     RegistryBrowserView(viewModel: vm)
-                        // Registry needs wider column for skill info + install buttons
+                        // Registry 页面需要更宽的中栏，以容纳 skill 信息和 install 按钮。
                         .navigationSplitViewColumnWidth(min: 300, ideal: 400, max: 600)
                 }
             } else if case .customRepo(let repoID) = selectedSidebarItem,
                       let vm = repoVMs[repoID] {
-                // Custom repository browser: shows skills in the selected user-configured repo
+                // Custom repository browser：展示当前选中 repository 中的 skills。
                 RepositoryBrowserView(viewModel: vm)
                     .navigationSplitViewColumnWidth(min: 300, ideal: 400, max: 600)
             } else {
-                // Default: show skill dashboard list
+                // 默认展示 skill dashboard 列表。
                 if let vm = dashboardVM {
                     DashboardView(
                         viewModel: vm,
                         selectedSkillID: $selectedSkillID,
                         selectedAgentFilter: selectedSidebarItem?.agentFilter
                     )
-                        // Constrain middle column (skill list) width range,
-                        // preventing content from being squeezed when first opening
+                        // 约束中栏（skill list）的宽度范围，
+                        // 避免初次打开时内容被过度压缩。
                         .navigationSplitViewColumnWidth(min: 250, ideal: 320, max: 450)
                 }
             }
         } detail: {
-            // Right column: detail view varies based on sidebar selection
+            // 右栏：根据 sidebar selection 展示不同 detail view。
             if selectedSidebarItem == .registry {
                 // F09: Show registry skill detail when a registry skill is selected
                 if let vm = registryVM, let skill = vm.selectedSkill {
@@ -114,13 +114,11 @@ struct ContentView: View {
                 }
             } else if let skillID = selectedSkillID, let vm = detailVM {
                 SkillDetailView(skillID: skillID, viewModel: vm)
-                    // .id(skillID) forces SwiftUI to destroy and recreate the detail view
-                    // whenever the selected skill changes, rather than reusing the same view
-                    // instance with an implicit cross-fade transition.
-                    // Without this, NavigationSplitView keeps the old content visible during
-                    // its built-in transition animation, causing the 1-3s "stale content" delay.
-                    // This is equivalent to React's `key` prop — a changed key tells SwiftUI
-                    // "this is a completely new view", ensuring immediate visual feedback.
+                    // `.id(skillID)` 会强制 SwiftUI 在选中 skill 变化时销毁并重建 detail view，
+                    // 而不是复用旧实例并走隐式的 cross-fade transition。
+                    // 如果没有这行，`NavigationSplitView` 在过渡动画期间会短暂保留旧内容，
+                    // 产生 1~3 秒左右的“陈旧内容”观感。
+                    // 这个用法本质上类似 React 里的 `key`。
                     .id(skillID)
             } else {
                 EmptyStateView(
@@ -130,14 +128,14 @@ struct ContentView: View {
                 )
             }
         }
-        // .task executes async task when View first appears (similar to React's useEffect([], ...))
+        // `.task` 会在 `View` 首次出现时执行 async 任务，概念上类似 React 的 `useEffect([], ...)`。
         .task {
             dashboardVM = DashboardViewModel(skillManager: skillManager)
             detailVM = SkillDetailViewModel(skillManager: skillManager)
             // F09: Initialize registry browser ViewModel
             registryVM = RegistryBrowserViewModel(skillManager: skillManager)
-            // Migrate data from old paths (~/.agents/) to new paths (~/.skillsmaster/)
-            // Must run before refresh() so the scanner finds skills at the new canonical location
+            // 先执行从旧路径（`~/.agents/`）到新路径（`~/.skillsmaster/`）的迁移。
+            // 这一步必须发生在 `refresh()` 之前，否则 scanner 看不到新的 canonical 目录。
             MigrationManager.migrateIfNeeded()
             await skillManager.refresh()
             // Build repoVMs for any repositories that were loaded during refresh

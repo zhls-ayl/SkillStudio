@@ -1,56 +1,50 @@
 import SwiftUI
-// Import Apple's official swift-markdown library for parsing Markdown AST
-// The library provides `Document`, `MarkupVisitor`, and typed AST nodes (Heading, Paragraph, etc.)
-// Note: The module is named "Markdown" (declared in Package.swift as `.product(name: "Markdown", ...)`),
-// which means both `Markdown.Text` (AST node) and `SwiftUI.Text` (view) exist in scope.
-// We disambiguate with explicit module prefixes where needed.
+// 引入 Apple 官方 `swift-markdown` 库，用于解析 Markdown AST。
+// 这个库提供了 `Document`、`MarkupVisitor` 以及 `Heading`、`Paragraph` 等强类型 AST node。
+// 由于 module 名就叫 `Markdown`，因此作用域里会同时出现 `Markdown.Text`（AST node）
+// 和 `SwiftUI.Text`（View）；需要时要显式写 module 前缀来消除歧义。
 import Markdown
 
-/// MarkdownContentView renders a markdown string as native SwiftUI views
+/// `MarkdownContentView` 负责把 Markdown 字符串渲染成原生 SwiftUI 视图。
 ///
-/// Uses Apple's swift-markdown library to parse the raw markdown into an AST (Abstract Syntax Tree),
-/// then walks the tree with a custom `MarkupVisitor` to produce SwiftUI views for each node.
+/// 实现方式是：先用 `swift-markdown` 把原始文本解析成 AST（Abstract Syntax Tree），
+/// 再通过自定义 `MarkupVisitor` 遍历 AST，把每个 node 转成 SwiftUI `View`。
 ///
-/// This approach renders markdown natively in the app (no WebView needed), giving:
-/// - Consistent macOS look and feel (system fonts, colors, dark mode support)
-/// - Fast rendering (no web engine overhead)
-/// - Text selection support via `.textSelection(.enabled)`
+/// 这种方案不依赖 `WebView`，优点包括：
+/// - 原生 macOS 外观，更容易和系统字体、颜色、dark mode 保持一致
+/// - 渲染开销更低，不需要嵌入 web engine
+/// - 可以直接启用 `textSelection(.enabled)`
 ///
-/// ## Performance design
-/// `Document(parsing:)` is a CPU-intensive operation that blocks the main thread if called
-/// directly inside `body`. We use `@State` + `.task(id:)` to run parsing on a background
-/// thread (Swift concurrency cooperative thread pool) and store the result. While parsing
-/// is in progress, a lightweight skeleton placeholder is shown so the UI stays responsive.
-///
-/// Usage: `MarkdownContentView(markdownText: "# Hello\n\nSome **bold** text")`
+/// `Document(parsing:)` 属于 CPU-bound 操作，如果直接在 `body` 里执行会阻塞 main thread。
+/// 因此这里使用 `@State` + `.task(id:)` 在后台完成解析，并在解析过程中展示轻量占位 UI。
 struct MarkdownContentView: View {
 
-    /// Raw markdown string to parse and render
+    /// 需要被解析和渲染的原始 Markdown 字符串。
     let markdownText: String
 
-    /// Parsed AST document — nil until background parsing completes.
-    /// `@State` is a SwiftUI property wrapper that stores mutable view-local state.
-    /// When this value changes (parsing finishes), SwiftUI automatically re-renders the view.
+    /// 已解析的 AST `Document`；在后台解析完成之前这里为 `nil`。
+    /// `@State` 用于保存当前 `View` 的本地可变状态。
+    /// 当这个值变化时，SwiftUI 会自动触发重新渲染。
     @State private var document: Document?
 
     var body: some View {
         Group {
             if let document {
-                // Parsing complete: render the full AST as SwiftUI views.
-                // `LazyVStack` defers view creation for off-screen nodes —
-                // only the nodes currently visible in the ScrollView are instantiated.
-                // This is similar to RecyclerView in Android or virtualized lists in React.
+                // 解析完成后，按完整 AST 渲染 SwiftUI 视图。
+                // `LazyVStack` 会延迟创建屏幕外节点对应的视图，
+                // 只有当前可见区域附近的内容才会真正实例化。
+                // 概念上类似 Android 的 `RecyclerView` 或 React 中的虚拟列表。
                 LazyVStack(alignment: .leading, spacing: 12) {
                     ForEach(Array(document.children.enumerated()), id: \.offset) { _, child in
-                        // Render each top-level block element using our custom visitor
+                        // 使用自定义 visitor 渲染每个顶层 block element。
                         MarkdownNodeView(node: child)
                     }
                 }
                 .textSelection(.enabled)
             } else {
-                // Parsing in progress: show a subtle loading placeholder.
-                // This keeps the UI responsive instead of blocking with a blank screen.
-                // `ProgressView()` renders macOS's spinning activity indicator.
+                // 解析过程中显示轻量 loading placeholder。
+                // 这样可以避免页面在解析期间出现“空白阻塞”的观感。
+                // `ProgressView()` 会显示 macOS 原生的 loading 指示器。
                 HStack {
                     ProgressView()
                         .controlSize(.small)
@@ -62,24 +56,20 @@ struct MarkdownContentView: View {
                 .padding(.vertical, 4)
             }
         }
-        // `.task(id: markdownText)` launches an async Task whenever `markdownText` changes.
-        // In Swift concurrency, `Task { }` runs on the cooperative thread pool (not the main thread),
-        // so `Document(parsing:)` executes in the background without blocking the UI.
-        // This is equivalent to Java's ExecutorService.submit() or Go's `go func()`.
-        // When `markdownText` changes (e.g., user navigates to a different skill),
-        // the previous task is automatically cancelled and a new one starts.
+        // `.task(id: markdownText)` 会在 `markdownText` 变化时启动新的 async Task。
+        // 在 Swift concurrency 中，`Task { }` 可以把这类工作交给 cooperative thread pool 执行，
+        // 从而避免 `Document(parsing:)` 阻塞 UI。
+        // 当 `markdownText` 变化时，旧任务会自动取消，并启动一轮新的解析。
         .task(id: markdownText) {
-            // Reset to nil first so the loading placeholder is shown immediately
-            // when content changes — avoids stale content flickering.
+            // 先重置为 `nil`，让 loading placeholder 能立刻显示，
+            // 避免内容切换时出现旧内容闪烁。
             document = nil
-            // `Document(parsing:)` is CPU-bound work. Running it inside a `Task`
-            // allows Swift to schedule it on a background thread, keeping the main
-            // actor (and thus the UI) free. The `await` here yields control back to
-            // the main actor only when the result is ready to be stored in @State.
+            // `Document(parsing:)` 属于 CPU-bound 工作，把它放进 `Task` 可以避免阻塞 UI。
+            // 这样 Swift 就可以把解析任务调度到后台执行，让 main actor 保持空闲。
+            // 等结果准备好之后，再回到主线程把值写入 `@State`。
             let parsed = Document(parsing: markdownText)
-            // Assigning to @State must happen on the main actor (SwiftUI requirement).
-            // Since `.task` runs the closure on the main actor by default in SwiftUI,
-            // this assignment is safe — it triggers a re-render to show the parsed content.
+            // 给 `@State` 赋值必须回到 main actor（这是 SwiftUI 的要求）。
+            // 这里的赋值是安全的，并会触发重新渲染来展示解析结果。
             document = parsed
         }
     }
@@ -87,25 +77,22 @@ struct MarkdownContentView: View {
 
 // MARK: - Block Node View
 
-/// MarkdownNodeView renders a single Markdown AST node as a SwiftUI view
+/// `MarkdownNodeView` 负责把单个 Markdown AST node 渲染成 SwiftUI `View`。
 ///
-/// This is a helper struct that bridges the `MarkupVisitor` pattern (which uses `mutating` methods)
-/// with SwiftUI's view system. SwiftUI views are structs, and `body` is a non-mutating computed property,
-/// so we can't call a `mutating` visitor method directly inside `body`.
-/// Instead, we create the visitor and call it in an initializer or static context.
+/// 这个辅助结构的作用，是把 `MarkupVisitor`（内部依赖 `mutating` 方法）和 SwiftUI 的 `View` system 衔接起来。
+/// 由于 SwiftUI `View` 是 `struct`，而 `body` 又是非 `mutating` 的 computed property，
+/// 所以不能直接在 `body` 里调用 `mutating visitor` 方法。
 ///
-/// The `MarkupVisitor` protocol (from swift-markdown) uses the Visitor design pattern:
-/// each AST node type has a corresponding `visit*` method. This is similar to Java's Visitor pattern
-/// or Go's AST walker.
+/// `MarkupVisitor` 本身采用的是典型的 Visitor pattern：
+/// 不同 AST node 会分发到各自的 `visit*` 方法中。
 struct MarkdownNodeView: View {
 
-    /// The Markdown AST node to render
+    /// 当前要渲染的 Markdown AST node。
     let node: any Markup
 
     var body: some View {
-        // Create a visitor instance and dispatch the node to the appropriate visit* method.
-        // `visit()` is the entry point that calls the specific `visitHeading()`, `visitParagraph()`, etc.
-        // based on the runtime type of the node (dynamic dispatch via protocol).
+        // 创建 visitor，并把 node 分发到对应的 `visit*` 方法。
+        // `visit()` 是入口方法，会根据 node 的实际类型分发到 `visitHeading()`、`visitParagraph()` 等具体实现。
         var visitor = SwiftUIMarkdownVisitor()
         let result = visitor.visit(node)
         result
@@ -135,9 +122,9 @@ struct MarkdownNodeView: View {
 ///   Strikethrough, and plain Text
 struct SwiftUIMarkdownVisitor: MarkupVisitor {
 
-    // `typealias` declares `Result` as `AnyView` for the MarkupVisitor protocol.
-    // Every visit* method must return this type. AnyView is Swift's type-erased view wrapper,
-    // similar to Java's Object or Go's interface{} — it wraps any concrete View type.
+    // `typealias` 把 `MarkupVisitor` 的 `Result` 统一声明为 `AnyView`。
+    // 这样每个 `visit*` 方法都返回同一种结果类型。
+    // `AnyView` 是 SwiftUI 中常见的 type-erased `View` 包装器。
     typealias Result = AnyView
 
     // MARK: - Block Elements

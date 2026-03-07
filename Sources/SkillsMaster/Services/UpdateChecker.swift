@@ -1,10 +1,10 @@
 import Foundation
 import AppKit
 
-/// AppUpdateInfo represents GitHub Release information
+/// `AppUpdateInfo` 表示从 GitHub Release API 获取到的版本信息。
 ///
-/// Codable protocol enables bidirectional conversion between this struct and JSON (similar to Java's Jackson @JsonProperty or Go's json tag).
-/// CodingKeys enum maps Swift's camelCase property names to snake_case JSON keys returned by GitHub API.
+/// 这里通过 `Codable` 完成 JSON 与 Swift struct 之间的双向映射，
+/// 并使用 `CodingKeys` 把 Swift 的 `camelCase` 属性名映射到 GitHub API 返回的 `snake_case` 字段。
 struct AppUpdateInfo: Codable, Sendable {
     /// GitHub Release tag name (e.g. "v1.2.0")
     let tagName: String
@@ -69,11 +69,10 @@ struct AppUpdateInfo: Codable, Sendable {
     }
 }
 
-/// UpdateChecker is responsible for checking and executing app updates
+/// `UpdateChecker` 负责检查并执行 application update。
 ///
-/// actor is Swift's concurrency-safe type (similar to a struct with mutex protection in Go, or Erlang's Actor model).
-/// Mutable state inside actor is automatically protected from concurrent access, external access to properties/methods must use await.
-/// actor is used here because network requests and file operations are asynchronous and require thread safety.
+/// 由于这里同时涉及 network request、文件操作和安装流程，
+/// 使用 `actor` 可以把可变状态封装起来，保证并发访问时的 thread safety。
 actor UpdateChecker {
 
     /// GitHub API endpoint: get latest Release

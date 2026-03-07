@@ -1,22 +1,21 @@
 import Foundation
 
-/// SkillInstallViewModel manages the state and logic for the F10 (one-click install) sheet
+/// `SkillInstallViewModel` 负责 F10（one-click install）弹窗的状态与流程编排。
 ///
-/// Installation flow consists of two steps:
-/// 1. User inputs GitHub repository URL → shallow clone → scan for skills → display list
-/// 2. User selects skills and Agents to install → execute installation → complete
+/// 当前安装流程分两步：
+/// 1. 用户输入 GitHub repository URL → shallow clone → 扫描可用 Skills → 展示列表
+/// 2. 用户选择 Skills 与 Agents → 执行安装 → 完成
 ///
-/// @MainActor ensures all properties update on the main thread (UI-bound state must be on main thread)
-/// @Observable enables SwiftUI to automatically track property changes and refresh views
+/// 这里使用 `@MainActor` 保证 UI state 只在 main thread 更新，
+/// 使用 `@Observable` 让属性变化自动驱动 SwiftUI 刷新。
 @MainActor
 @Observable
-/// Identifiable protocol requires a unique id property so `.sheet(item:)` can use it to determine
-/// when to show/hide the sheet (item != nil → show, nil → hide)
-/// This is safer than `.sheet(isPresented:)` + extra @State, avoiding double-state synchronization timing issues
+/// `Identifiable` 要求提供唯一 `id`，这样 `\.sheet(item:)` 就可以根据 item 是否为 `nil` 判断弹窗展示状态。
+/// 相比 `\.sheet(isPresented:)` 再额外维护一份 `@State`，这种写法更不容易出现双状态同步时序问题。
 final class SkillInstallViewModel: Identifiable {
 
-    /// Unique identifier, required property for Identifiable protocol
-    /// Each new ViewModel instance automatically generates a new UUID
+    /// 唯一标识符，是 `Identifiable` 协议要求的属性。
+    /// 每个新的 `ViewModel` 实例都会自动生成一个新的 `UUID`。
     let id = UUID()
 
     // MARK: - Phase Enum
@@ -98,26 +97,26 @@ final class SkillInstallViewModel: Identifiable {
     /// When nil (manual install flow), all uninstalled skills are selected by default.
     var targetSkillId: String?
 
-    /// Current installation flow phase
+    /// 当前安装流程所处的阶段。
     var phase: Phase = .inputURL
 
-    /// All skills discovered in the repository
+    /// 当前 repository 中扫描到的全部 skills。
     var discoveredSkills: [GitService.DiscoveredSkill] = []
 
-    /// Set of skill names selected by user for installation
+    /// 用户选择安装的 skill 名称集合。
     /// Set provides O(1) lookup, similar to Java's HashSet
     var selectedSkillNames: Set<String> = []
 
-    /// Set of target Agents selected by user (Claude Code selected by default)
+    /// 用户选择的目标 Agent 集合（默认选中 `Claude Code`）。
     var selectedAgents: Set<AgentType> = [.claudeCode]
 
-    /// Set of already installed skill names (used to mark "already installed" in the list)
+    /// 已安装 skill 名称集合，用于列表中的 “already installed” 标记。
     var alreadyInstalledNames: Set<String> = []
 
-    /// Progress message
+    /// 进度提示信息。
     var progressMessage = ""
 
-    /// Number of skills successfully installed
+    /// 已成功安装的 skill 数量。
     var installedCount = 0
 
     /// Merged and deduplicated repo history (from lock file + scan history)

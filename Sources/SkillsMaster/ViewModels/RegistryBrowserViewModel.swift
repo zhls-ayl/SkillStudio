@@ -1,173 +1,158 @@
 import Foundation
 
-/// RegistryBrowserViewModel manages the state for the F09 Registry Browser feature
+/// `RegistryBrowserViewModel` 负责 F09 Registry Browser 的页面状态。
 ///
-/// Handles three modes of operation:
-/// 1. **Leaderboard browsing**: Displays skills from all-time / trending / hot categories
-/// 2. **Search**: Searches skills.sh registry via API with debounce
-/// 3. **Install**: Triggers install flow for a selected registry skill
+/// 它主要处理三类场景：
+/// 1. **Leaderboard browsing**：展示 all-time / trending / hot 列表
+/// 2. **Search**：对 `skills.sh` 执行带 debounce 的搜索
+/// 3. **Install**：为选中的 registry skill 触发安装流程
 ///
-/// @Observable is a macro (macOS 14+) that automatically tracks property changes
-/// and triggers SwiftUI view updates — replaces the older ObservableObject + @Published pattern.
-/// Similar to Vue.js reactive data or Android's LiveData.
-///
-/// @MainActor ensures all properties update on the main thread, which is required for UI state.
-/// Similar to Android's @UiThread annotation — UI updates must happen on the main thread.
+/// `@Observable` 会自动追踪属性变化并驱动 SwiftUI 刷新，
+/// `@MainActor` 则保证所有 UI state 更新都发生在 main thread。
 @MainActor
 @Observable
 final class RegistryBrowserViewModel {
 
     // MARK: - State
 
-    /// Current leaderboard category tab (All Time / Trending / Hot)
+    /// 当前选中的 leaderboard category tab（All Time / Trending / Hot）。
     var selectedCategory: SkillRegistryService.LeaderboardCategory = .allTime
 
-    /// Search text entered by user (empty = show leaderboard, non-empty = show search results)
+    /// 用户输入的搜索文本（为空时显示 leaderboard，非空时显示 search result）。
     var searchText = ""
 
-    /// Skills displayed in current view (either leaderboard or search results)
+    /// 当前视图中展示的 skills（可能来自 leaderboard，也可能来自 search result）。
     var displayedSkills: [RegistrySkill] = []
 
-    /// Whether data is currently loading (shows spinner in UI)
+    /// 当前是否处于 loading 状态（用于驱动 UI spinner）。
     var isLoading = false
 
-    /// Error message to display (nil means no error)
+    /// 需要展示的错误信息（`nil` 表示没有错误）。
     var errorMessage: String?
 
-    /// Whether leaderboard scraping failed (triggers fallback UI suggesting search)
-    /// Separate from errorMessage to allow different UI treatment
+    /// leaderboard scraping 是否失败。
+    /// 之所以单独保留这个状态，是为了和 `errorMessage` 区分不同的 UI 呈现方式。
     var leaderboardUnavailable = false
 
-    /// Dictionary mapping installed skill ID → source repo (owner/repo) from lock file.
-    /// Used for source-aware "Installed" badge matching so that two registry skills
-    /// with the same skillId but from different repos are distinguished correctly.
-    /// Only populated for skills that have a lock entry with a `source` field.
+    /// 记录“已安装 skill ID → source repo”的映射，数据来自 `lock file`。
+    /// 这样在显示 “Installed” 标记时，就能基于 source 做精确匹配，
+    /// 避免两个 `skillId` 相同但 repo 不同的 registry 项被错误合并。
     private var installedSkillSources: [String: String] = [:]
 
-    /// Set of skill IDs installed without source tracking (no lock entry).
-    /// Falls back to skillId-only matching for backward compatibility with
-    /// manually installed skills that were not installed via the registry flow.
+    /// 没有 source 追踪信息的已安装 skill ID 集合（通常表示没有 `lockEntry`）。
+    /// 这里保留按 `skillId` 回退匹配的逻辑，用于兼容手动安装、未经过 registry flow 的旧数据。
     private var installedSkillIDsNoSource: Set<String> = []
 
-    /// Install sheet ViewModel (non-nil triggers sheet display)
+    /// Install sheet 对应的 `ViewModel`（非 `nil` 时弹出 sheet）。
     ///
-    /// Uses `.sheet(item:)` binding pattern established by SkillInstallView:
-    /// - When installVM is non-nil → sheet appears
-    /// - When installVM is nil → sheet is dismissed
-    /// This avoids the dual state synchronization timing issues of `.sheet(isPresented:)`
+    /// 这里采用 `SkillInstallView` 已经建立的 `.sheet(item:)` 绑定模式：
+    /// - `installVM != nil` 时展示 sheet
+    /// - `installVM == nil` 时关闭 sheet
+    /// 这样可以避免 `.sheet(isPresented:)` 常见的双状态同步时序问题。
     var installVM: SkillInstallViewModel?
 
     // MARK: - Skill Content State
 
-    /// Parsed SKILL.md content for the currently selected registry skill
+    /// 当前选中 registry skill 的已解析 `SKILL.md` 内容。
     ///
-    /// Non-nil when content has been successfully fetched and parsed.
-    /// Contains both metadata (author, version, license) and the markdown body.
-    /// Reset to nil when a different skill is selected (before new content loads).
+    /// 成功拉取并解析后这里会有值。
+    /// 其中同时包含 metadata（如 author、version、license）和 Markdown 正文。
+    /// 当用户切换到新的 skill 时，会先重置为 `nil`，再加载新内容。
     var fetchedContent: SkillMDParser.ParseResult?
 
-    /// Whether SKILL.md content is currently being fetched for the selected skill
+    /// 当前选中 skill 的 `SKILL.md` 是否正在拉取。
     ///
-    /// Drives a ProgressView spinner in the detail view while content loads asynchronously.
+    /// 这个状态会驱动 detail view 中的 `ProgressView` spinner。
     var isLoadingContent = false
 
-    /// Error message when SKILL.md content fetch fails (nil means no error)
+    /// `SKILL.md` 拉取失败时的错误信息（`nil` 表示没有错误）。
     ///
-    /// Shown in the detail view with a fallback "View on skills.sh" link.
-    /// Common causes: SKILL.md not found in repo, network timeout, non-UTF-8 encoding.
+    /// 会显示在 detail view 中，并配合兜底的 “View on skills.sh” 链接一起出现。
+    /// 常见原因包括：repo 中不存在 `SKILL.md`、network timeout、内容不是 UTF-8。
     var contentError: String?
 
-    /// Currently selected registry skill ID (drives the detail pane display)
+    /// 当前选中的 registry skill ID，用于驱动 detail pane。
     ///
-    /// When user clicks a skill in the list, this is set to that skill's id,
-    /// and the detail pane shows RegistrySkillDetailView.
-    /// Similar to DashboardView's selectedSkillID binding pattern.
+    /// 当用户在列表里点击某个 skill 时，这里会被设置为对应的 `id`，
+    /// detail pane 随后展示 `RegistrySkillDetailView`。
     var selectedSkillID: String?
 
-    /// Convenience: get the currently selected RegistrySkill object
+    /// 便捷属性：返回当前选中的 `RegistrySkill`。
     ///
-    /// Looks up the selected skill from displayedSkills by ID.
-    /// Returns nil if no skill is selected or if the ID doesn't match any displayed skill.
-    /// `first(where:)` is Swift's collection search (similar to Java Stream's findFirst + filter).
+    /// 根据 `selectedSkillID` 从 `displayedSkills` 中查找当前选中的 skill。
+    /// 如果还没有选中项，或者 ID 无法匹配到任何结果，就返回 `nil`。
     var selectedSkill: RegistrySkill? {
         guard let id = selectedSkillID else { return nil }
         return displayedSkills.first { $0.id == id }
     }
 
-    /// Whether search mode is active (controls which content to display)
-    /// Computed property — no backing storage needed, derived from searchText
+    /// 当前是否处于 search mode。
+    /// 这是一个 computed property，不需要单独存储，直接由 `searchText` 推导得出。
     var isSearchActive: Bool {
         !searchText.isEmpty
     }
 
     // MARK: - Dependencies
 
-    /// Registry service for API calls and HTML scraping
+    /// 用于 API 调用和 HTML scraping 的 registry service。
     private let registryService = SkillRegistryService()
 
-    /// Content fetcher for downloading SKILL.md from GitHub raw URLs
+    /// 用于从 GitHub raw URL 下载 `SKILL.md` 的 content fetcher。
     ///
-    /// Uses the actor pattern for thread-safe caching, consistent with registryService.
-    /// Fetches from `raw.githubusercontent.com` with main→master branch fallback.
+    /// 它和 `registryService` 一样采用 `actor` 模式维护 thread-safe cache，
+    /// 并支持 `main → master` 的 branch fallback。
     private let contentFetcher = SkillContentFetcher()
 
-    /// SkillManager reference for checking installed skills and triggering installs
+    /// `SkillManager` 引用，用于判断安装状态并触发安装流程。
     private let skillManager: SkillManager
 
     // MARK: - Search Debounce
 
-    /// Debounce task for search-as-you-type
+    /// 用于 search-as-you-type 的 debounce task。
     ///
-    /// When user types quickly, we cancel the previous search task and create a new one.
-    /// Only the last keystroke triggers an actual API call (after 300ms delay).
-    /// Similar to RxJava's debounce() or JavaScript's lodash.debounce().
-    ///
-    /// Task<Void, Never> means: async task that returns nothing and never throws errors.
-    /// The `Never` type parameter means errors are handled internally (try? catches them).
+    /// 当用户快速输入时，会取消上一个搜索任务并创建新的任务，
+    /// 只有最后一次输入会在 300ms 延迟后真正触发 API 调用。
+    /// `Task<Void, Never>` 表示这是一个不返回值、也不会向外抛错的 async task。
     private var searchTask: Task<Void, Never>?
 
     // MARK: - Init
 
-    /// Initialize with SkillManager dependency
+    /// 通过依赖注入初始化 `SkillManager`。
     ///
-    /// SkillManager is injected from the view tree (passed down from ContentView).
-    /// This follows the Dependency Injection pattern — ViewModel doesn't create its own SkillManager,
-    /// it receives the shared instance, similar to Spring's @Autowired.
+    /// `SkillManager` 来自上层 `View` tree（由 `ContentView` 继续向下传递），
+    /// `ViewModel` 自己不会新建一份实例。
     init(skillManager: SkillManager) {
         self.skillManager = skillManager
     }
 
     // MARK: - Lifecycle
 
-    /// Called when the view first appears (from SwiftUI's `.task` modifier)
+    /// 在视图首次出现时调用（由 SwiftUI 的 `.task` 触发）。
     ///
-    /// `.task` runs async code when the view first appears — similar to Android's onResume + coroutine
-    /// or React's useEffect([], ...) with empty dependency array.
+    /// 可以把它理解成“页面首次展示时执行的 async 初始化逻辑”。
     func onAppear() async {
         syncInstalledSkills()
         await loadLeaderboard()
     }
 
-    /// Sync installed skill data from SkillManager for source-aware "Installed" badge matching.
+    /// 从 `SkillManager` 同步已安装 skill 数据，用于 source-aware 的 “Installed” 标记。
     ///
-    /// Builds two data structures:
-    /// - `installedSkillSources`: maps skillId → source repo for skills with lock entries
-    /// - `installedSkillIDsNoSource`: collects skillIds that have no lock entry (manual installs)
+    /// 这里会构建两份索引：
+    /// - `installedSkillSources`：记录带 `lockEntry` 的 skill 对应 source repo
+    /// - `installedSkillIDsNoSource`：记录没有 `lockEntry` 的手动安装 skill
     ///
-    /// This ensures that two registry skills sharing the same skillId but from different
-    /// repositories are NOT both marked as "Installed" — only the one whose source matches
-    /// the locally installed skill's lock entry will show the badge.
+    /// 这样即使两个 registry skill 拥有相同 `skillId`，只要 source 不同，也不会被同时标记为已安装。
     func syncInstalledSkills() {
         var sources: [String: String] = [:]
         var noSource: Set<String> = []
         for skill in skillManager.skills {
-            // If the skill has a lock entry with a source field (e.g., "owner/repo"),
-            // record it for exact source matching.
+            // 如果 skill 的 `lockEntry` 带有 source（例如 `owner/repo`），
+            // 就记录下来，用于后续的精确 source 匹配。
             if let source = skill.lockEntry?.source {
                 sources[skill.id] = source
             } else {
-                // No lock entry means manually installed (not from registry).
-                // Fall back to skillId-only matching for backward compatibility.
+                // 没有 `lockEntry` 通常意味着它是手动安装的，不来自 registry。
+                // 这里保留按 `skillId` 回退匹配的兼容逻辑。
                 noSource.insert(skill.id)
             }
         }

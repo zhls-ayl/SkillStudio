@@ -1,31 +1,23 @@
 import Foundation
 
-/// SkillContentFetcher fetches raw SKILL.md content from GitHub for registry skills
+/// `SkillContentFetcher` 负责为 registry skill 从 GitHub 拉取原始 `SKILL.md` 内容。
 ///
-/// Since skills.sh has no JSON API for individual skill content, we fetch SKILL.md
-/// directly from GitHub's raw content CDN (`raw.githubusercontent.com`).
+/// 由于 `skills.sh` 没有提供单个 skill 内容的 JSON API，这里直接访问 GitHub raw content CDN
+///（`raw.githubusercontent.com`）来获取 `SKILL.md`。
 ///
-/// Repositories use different directory layouts for skills:
-/// - **Flat layout**: `{skillId}/SKILL.md` at repo root (e.g., `vercel-labs/agent-skills`)
-/// - **Monorepo layout**: `skills/{skillId}/SKILL.md` under a `skills/` subdirectory
-///   (e.g., `inference-sh/skills` stores skills at `skills/remotion-render/SKILL.md`)
-/// - **Plugin-style layout**: `.claude/skills/{skillId}/SKILL.md` (e.g.,
-///   `nextlevelbuilder/ui-ux-pro-max-skill` stores at `.claude/skills/ui-ux-pro-max/SKILL.md`)
-/// - **Root layout**: `SKILL.md` at the repository root (single-skill repos)
+/// 当前实现需要兼容多种 repository layout：
+/// - **Flat layout**：`{skillId}/SKILL.md` 位于 repo 根目录
+/// - **Monorepo layout**：`skills/{skillId}/SKILL.md` 位于 `skills/` 子目录
+/// - **Plugin-style layout**：`.claude/skills/{skillId}/SKILL.md`
+/// - **Root layout**：`SKILL.md` 直接位于 repo 根目录（single-skill repo）
 ///
-/// Additionally, the directory name on GitHub may differ from the `skillId` returned by
-/// the registry API. For example, `remotion-dev/skills` has a skill with
-/// `skillId = "remotion-best-practices"` but the directory is just `remotion/`.
-/// When direct URL lookup fails, the fetcher falls back to the GitHub Git Tree API
-/// to discover the actual path containing the SKILL.md at any nesting depth.
+/// 此外，GitHub 上真实目录名不一定等于 registry API 返回的 `skillId`。
+/// 如果 direct URL lookup 失败，fetcher 会回退到 Git Tree API，按任意层级搜索真实的 `SKILL.md` 路径。
 ///
-/// The fetcher tries all 4 layouts on both `main` and `master` branches (8 attempts total),
-/// then falls back to Git Tree API-based discovery if all direct attempts return 404.
+/// 整个流程会先尝试 `main` / `master` 两个 branch 与多种 layout 组合；
+/// 如果 direct fetch 全部返回 `404`，再进入 Git Tree API fallback。
 ///
-/// Uses `actor` for thread-safe cache access, consistent with other service actors
-/// in the project (SkillRegistryService, LockFileManager, AgentDetector).
-/// The `actor` keyword ensures only one task accesses mutable state at a time —
-/// similar to Go's goroutine + mutex pattern, but enforced at compile time.
+/// 这里使用 `actor` 维护 cache，保证并发访问时的 thread safety，与项目中的其他 `Service actor` 保持一致。
 actor SkillContentFetcher {
 
     // MARK: - Error Types
