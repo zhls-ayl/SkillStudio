@@ -22,24 +22,20 @@ actor SkillContentFetcher {
 
     // MARK: - Error Types
 
-    /// Errors that can occur when fetching skill content
+    /// 拉取 skill 内容时可能出现的错误类型。
     ///
-    /// Conforms to `LocalizedError` to provide human-readable descriptions via `errorDescription`.
-    /// This is the standard Swift pattern for domain-specific errors (similar to Java's custom exceptions).
+    /// 通过 `LocalizedError` 提供可直接展示的错误描述。
     enum FetchError: Error, LocalizedError {
-        /// Network request failed (timeout, DNS, connection error)
+        /// network request 失败（如 timeout、DNS、连接错误）。
         case networkError(String)
-        /// SKILL.md not found at the expected GitHub path (tried both main and master branches)
+        /// 在预期的 GitHub 路径中未找到 `SKILL.md`。
         case notFound
-        /// Server returned an unexpected HTTP status code (not 200 or 404)
+        /// server 返回了未预期的 HTTP status code。
         case invalidResponse(Int)
-        /// Response body is not valid UTF-8 text
+        /// response body 不是合法的 UTF-8 文本。
         case invalidEncoding
 
-        /// Human-readable error description (similar to Java's getMessage())
-        ///
-        /// `errorDescription` is the `LocalizedError` protocol requirement.
-        /// Swift 5.9+ allows implicit return for single-expression switch cases.
+        /// 面向用户展示的错误描述。
         var errorDescription: String? {
             switch self {
             case .networkError(let message):
@@ -56,35 +52,23 @@ actor SkillContentFetcher {
 
     // MARK: - Cache
 
-    /// In-memory cache entry storing fetched content and its timestamp
-    ///
-    /// Tuples in Swift are lightweight unnamed structs — similar to Python's namedtuple.
-    /// Keyed by "{source}/{skillId}" string for O(1) lookup.
+    /// 内存中的 cache 项，保存拉取结果及其时间戳。
     private var cache: [String: (content: String, fetchedAt: Date)] = [:]
 
-    /// Cache time-to-live: 10 minutes
-    ///
-    /// Skill content changes infrequently, so a longer TTL (10 min vs 5 min for leaderboard)
-    /// reduces unnecessary network requests when clicking between skills and back.
+    /// cache 的 TTL 为 10 分钟。
+    /// 因为 skill 内容变化频率较低，所以使用更长的缓存时间来减少重复请求。
     private let cacheTTL: TimeInterval = 10 * 60
 
     // MARK: - Public API
 
-    /// Fetch the raw SKILL.md content for a registry skill from GitHub
+    /// 从 GitHub 拉取某个 registry skill 对应的原始 `SKILL.md` 内容。
     ///
-    /// Fetch strategy:
-    /// 1. Check in-memory cache (10-minute TTL)
-    /// 2. Try direct URLs (8 candidates: 2 branches × 4 layouts) using skillId as directory name
-    /// 3. If all 404, fall back to GitHub Git Tree API to discover the actual path
-    ///    (handles cases where skillId differs from directory name, e.g., "remotion-best-practices"
-    ///    is in directory "remotion", or SKILL.md is deeply nested)
-    /// 4. Throw `.notFound` if all attempts fail
-    ///
+    /// 当前策略是：先查内存 cache，再依次尝试 direct URL；如果全部 `404`，再回退到 Git Tree API。
     /// - Parameters:
-    ///   - source: Repository in "owner/repo" format (e.g., "vercel-labs/agent-skills")
-    ///   - skillId: Skill identifier within the repository (e.g., "vercel-react-best-practices")
-    /// - Returns: Raw SKILL.md file content as a string
-    /// - Throws: `FetchError` on network failure, missing file, or invalid response
+    ///   - source: `owner/repo` 格式的 repository 标识
+    ///   - skillId: repository 内部的 skill 标识
+    /// - Returns: 原始 `SKILL.md` 文本
+    /// - Throws: `FetchError`
     func fetchContent(source: String, skillId: String) async throws -> String {
         let cacheKey = "\(source)/\(skillId)"
 
@@ -199,63 +183,39 @@ actor SkillContentFetcher {
 
     // MARK: - Private Networking
 
-    /// Fallback discovery: use GitHub Git Tree API to find the actual SKILL.md path
+    /// fallback 发现逻辑：通过 GitHub Git Tree API 查找真实的 `SKILL.md` 路径。
     ///
-    /// When the `skillId` doesn't match the directory name on GitHub (e.g., skillId is
-    /// "remotion-best-practices" but the directory is "remotion"), direct URL lookup fails.
-    /// This method fetches the entire repository file tree via the Git Tree API in a single
-    /// request (recursive mode), then searches for any file named `SKILL.md` at any depth.
+    /// 当 `skillId` 与 GitHub 上的实际目录名不一致时，direct URL lookup 会失败。
+    /// 这时会回退到 Git Tree API，一次性拉取整个 repository 的文件树，再在其中查找所有 `SKILL.md`。
     ///
-    /// GitHub Git Tree API: `GET /repos/{owner}/{repo}/git/trees/{branch}?recursive=1`
-    /// Returns a JSON object with a `tree` array containing all files/directories recursively.
-    /// Each entry has `path` (full relative path), `type` ("blob" for files, "tree" for dirs),
-    /// and other git metadata.
-    ///
-    /// Advantages over the Contents API:
-    /// - **1 API call per branch** instead of 2+ (one per directory scanned)
-    /// - **Unlimited depth** — finds SKILL.md at any nesting level
-    /// - **Lower rate limit impact** — 2 total requests (main + master) vs 4+ with Contents API
-    ///
-    /// Rate limit: 60 requests/hour for unauthenticated requests — sufficient for a desktop app.
-    ///
-    /// Strategy:
-    /// 1. Fetch the full file tree for `main` (then `master` if that fails)
-    /// 2. Find all paths ending in `SKILL.md`
-    /// 3. For each match, fetch the raw content and verify the `name:` field matches our skillId
-    ///
-    /// - Parameters:
-    ///   - source: Repository in "owner/repo" format
-    ///   - skillId: The skill identifier to match against the YAML `name:` field
-    /// - Returns: Raw SKILL.md content if found, nil otherwise
+    /// 相比逐目录调用 Contents API，这种方式请求更少、层级更深，也更适合 desktop app 的使用模式。
+    /// 当前策略是：先查 `main`，失败后再查 `master`；命中候选 `SKILL.md` 后，再校验 YAML 中的 `name:` 字段。
     private func discoverViaTreeAPI(source: String, skillId: String) async throws -> String? {
-        // Try both "main" and "master" branches
+        // 同时尝试 `main` 和 `master` 两个 branch。
         for branch in ["main", "master"] {
-            // Build Git Tree API URL with recursive flag to get the entire tree in one call.
-            // Format: `https://api.github.com/repos/{owner}/{repo}/git/trees/{branch}?recursive=1`
+            // 构造带 `recursive=1` 的 Git Tree API URL，一次性获取完整文件树。
             guard let apiURL = URL(
                 string: "https://api.github.com/repos/\(source)/git/trees/\(branch)?recursive=1"
             ) else {
                 continue
             }
 
-            // Fetch the full file tree from GitHub
+            // 从 GitHub 拉取完整文件树。
             guard let treePaths = await fetchTreeAPIListing(apiURL) else {
                 continue
             }
 
-            // Filter for paths ending in "SKILL.md" — these are the candidate files.
-            // `hasSuffix` is Swift's endsWith (similar to Java's String.endsWith or Go's strings.HasSuffix).
+            // 过滤出所有以 `SKILL.md` 结尾的路径，这些就是候选文件。
             let skillMDPaths = treePaths.filter { $0.hasSuffix("SKILL.md") }
 
-            // Try each discovered SKILL.md — fetch content and verify the name matches
+            // 逐个尝试候选 `SKILL.md`，并校验其 `name:` 是否与目标 skill 匹配。
             for path in skillMDPaths {
-                // Remove the trailing "/SKILL.md" to get the directory path,
-                // or use empty string if it's a root-level SKILL.md
+                // 去掉末尾的 `/SKILL.md`，得到所在目录路径；如果是根目录文件，则使用空字符串。
                 let dirPath: String
                 if path == "SKILL.md" {
                     dirPath = ""
                 } else {
-                    // `dropLast` removes the trailing "/SKILL.md" (10 characters)
+                    // `dropLast` 用来去掉结尾的 `/SKILL.md`。
                     dirPath = String(path.dropLast("/SKILL.md".count))
                 }
 
@@ -265,9 +225,8 @@ actor SkillContentFetcher {
                     continue
                 }
 
-                // Verify this SKILL.md belongs to our skill by checking the `name:` field
-                // in the YAML frontmatter. This avoids returning the wrong skill's content
-                // in repos with multiple skills.
+                // 通过 YAML frontmatter 里的 `name:` 字段确认它是否属于目标 skill，
+                // 避免在 multi-skill repo 中返回错误内容。
                 if contentMatchesSkillId(content, skillId: skillId) {
                     return content
                 }

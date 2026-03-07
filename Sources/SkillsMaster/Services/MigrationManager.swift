@@ -1,17 +1,12 @@
 import Foundation
 
-/// MigrationManager handles one-time data migration from old paths to new paths
+/// `MigrationManager` 负责一次性的路径迁移逻辑。
 ///
-/// When SkillsMaster upgraded its canonical storage from ~/.agents/skills/ to ~/.skillsmaster/skills/,
-/// existing users need their data migrated automatically on first launch.
+/// 当 SkillsMaster 把 canonical 存储从 `~/.agents/skills/` 迁移到 `~/.skillsmaster/skills/` 后，
+/// 旧用户首次启动时需要自动完成数据迁移。
 ///
-/// Migration scope:
-/// - Skill directories:        ~/.agents/skills/<name>/     → ~/.skillsmaster/skills/<name>/
-/// - Cache file:               ~/.agents/.skillsmaster-cache.json → ~/.skillsmaster/.skillsmaster-cache.json
-/// - Repos config:             ~/.agents/.skillsmaster-repos.json → ~/.skillsmaster/.skillsmaster-repos.json
-/// - Repos clones:             ~/.agents/repos/             → ~/.skillsmaster/repos/
-/// - Agent symbolic links:           updated to point to new canonical path
-/// - Lock file:                NOT migrated (stays at ~/.agents/.skill-lock.json, shared with npx skills)
+/// 当前迁移范围包括 skill 目录、cache、repository 配置与 clone 目录，以及 Agent symbolic link 的重定向。
+/// `lock file` 不参与迁移，仍保留在 `~/.agents/.skill-lock.json`。
 ///
 /// Uses `enum` as a namespace (no instances) with static methods.
 /// The migration is idempotent — safe to run multiple times.

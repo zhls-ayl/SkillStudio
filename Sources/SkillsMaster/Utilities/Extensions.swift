@@ -1,10 +1,9 @@
 import SwiftUI
 
-// MARK: - Date Formatting Extension
+// MARK: - 日期格式化扩展
 
 extension String {
-    /// Converts ISO 8601 timestamp string to a human-readable format
-    /// Example: "2026-02-07T08:07:27.280Z" → "Feb 7, 2026"
+    /// 把 ISO 8601 时间戳转换成更适合展示的格式。
     var formattedDate: String {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -16,10 +15,10 @@ extension String {
     }
 }
 
-// MARK: - URL Extension
+// MARK: - URL 扩展
 
 extension URL {
-    /// Gets the tilde-abbreviated path display (shorter and more user-friendly)
+    /// 返回使用 `~` 缩写后的路径表示，便于在 UI 中展示。
     var tildeAbbreviatedPath: String {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         if path.hasPrefix(home) {
@@ -29,11 +28,11 @@ extension URL {
     }
 }
 
-// MARK: - View Extension
+// MARK: - View 扩展
 
 extension View {
-    /// Conditional modifier: similar to a ternary expression, but for SwiftUI modifier chains
-    /// Usage: .if(condition) { view in view.foregroundColor(.red) }
+    /// 条件 modifier。
+    /// 用法示例：`.if(condition) { view in view.foregroundColor(.red) }`
     @ViewBuilder
     func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
         if condition {

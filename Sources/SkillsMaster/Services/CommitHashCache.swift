@@ -13,24 +13,18 @@ actor CommitHashCache {
 
     // MARK: - Data Types
 
-    /// JSON structure of the cache file
-    /// Codable protocol allows Swift to automatically generate JSON encoding/decoding code (similar to Go's json struct tag)
+    /// cache 文件对应的 JSON 结构。
     private struct CacheFile: Codable {
-        /// Stores skill name → commit hash mapping
+        /// skill name → commit hash 的映射。
         var skills: [String: String]
-        /// Stores manually linked skill → repository info mapping
-        /// optional ensures backward compatibility: old format files lack this field, decoding automatically as nil
+        /// 手动关联 skill → repository 信息的映射。
         var linkedSkills: [String: LinkedSkillInfo]?
-        /// Stores user's scanned repo history
-        /// Optional for backward compatibility: old cache files won't have this field, decodes as nil
+        /// 用户扫描过的 repository 历史。
         var repoHistory: [RepoHistoryEntry]?
     }
 
-    /// History of scanned repos from the Install Sheet
-    ///
-    /// Records GitHub repos that the user has successfully scanned in the Install Sheet,
-    /// so they can quickly select a previously used repo next time without retyping the URL.
-    /// Codable protocol auto-generates JSON serialization/deserialization code
+    /// Install Sheet 中的 repository 扫描历史。
+    /// 用于记录用户曾成功扫描过的 GitHub repository，便于后续快速复用。
     struct RepoHistoryEntry: Codable, Equatable {
         /// Repo source identifier (e.g. "crossoverJie/skills")
         var source: String
@@ -40,12 +34,8 @@ actor CommitHashCache {
         var scannedAt: String
     }
 
-    /// Manually linked skill to GitHub repository info
-    ///
-    /// When a skill has no lockEntry (e.g. directly placed in ~/.claude/skills/),
-    /// the user can manually link it to a GitHub repository, stored in this structure.
-    /// Fields align with LockEntry to facilitate LockEntry synthesis during refresh.
-    /// Codable protocol automatically generates JSON serialization/deserialization code
+    /// 手动关联到 GitHub repository 的 skill 信息。
+    /// 当 skill 没有 `lockEntry` 时，会把关联信息保存在这里，方便后续合成展示信息。
     struct LinkedSkillInfo: Codable {
         /// Repository source identifier (e.g. "crossoverJie/skills")
         var source: String

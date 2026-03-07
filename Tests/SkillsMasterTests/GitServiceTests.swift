@@ -98,24 +98,19 @@ final class GitServiceTests: XCTestCase {
 
     // MARK: - scanSkillsInRepo Tests
 
-    /// Test that scanSkillsInRepo discovers SKILL.md inside hidden directories like `.claude/skills/`.
-    ///
-    /// Some repositories (e.g. nextlevelbuilder/ui-ux-pro-max-skill) store skills at
-    /// `.claude/skills/<name>/SKILL.md`. Previously, `FileManager.enumerator` was created
-    /// with `.skipsHiddenFiles`, which caused `.claude/` to be skipped entirely.
-    /// This test verifies the fix: hidden directories are now traversed.
+    /// 验证 `scanSkillsInRepo` 能发现隐藏目录（如 `.claude/skills/`）里的 `SKILL.md`。
     func testScanSkillsInRepoFindsHiddenDirectorySkills() async throws {
         let fm = FileManager.default
-        // Create a temporary directory simulating a cloned repo
+        // 创建一个临时目录，模拟已 clone 的 repository。
         let repoDir = fm.temporaryDirectory.appendingPathComponent("SkillsMaster-test-\(UUID().uuidString)")
-        // Simulate `.claude/skills/my-skill/SKILL.md` layout
+        // 模拟 `.claude/skills/my-skill/SKILL.md` 这类目录结构。
         let skillDir = repoDir
             .appendingPathComponent(".claude")
             .appendingPathComponent("skills")
             .appendingPathComponent("my-skill")
         try fm.createDirectory(at: skillDir, withIntermediateDirectories: true)
 
-        // Write a minimal SKILL.md with YAML frontmatter
+        // 写入一个最小可用的 `SKILL.md`，包含 YAML frontmatter。
         let skillMDContent = """
         ---
         name: my-skill
@@ -130,32 +125,30 @@ final class GitServiceTests: XCTestCase {
             encoding: .utf8
         )
 
-        // `defer` ensures cleanup runs when the function exits (similar to Go's defer)
+        // 通过 `defer` 确保函数退出时自动清理。
         defer { try? fm.removeItem(at: repoDir) }
 
-        // GitService is an actor, so we need `await` to call its methods
+        // `GitService` 是 `actor`，因此这里需要通过 `await` 调用方法。
         let gitService = GitService()
         let skills = await gitService.scanSkillsInRepo(repoDir: repoDir)
 
-        // Should find exactly 1 skill
+        // 预期只会找到 1 个 skill。
         XCTAssertEqual(skills.count, 1, "Expected 1 skill in hidden directory, found \(skills.count)")
-        // Verify skill metadata
+        // 验证 skill metadata。
         let skill = try XCTUnwrap(skills.first)
         XCTAssertEqual(skill.id, "my-skill")
         XCTAssertEqual(skill.folderPath, ".claude/skills/my-skill")
         XCTAssertEqual(skill.skillMDPath, ".claude/skills/my-skill/SKILL.md")
     }
 
-    /// Test that scanSkillsInRepo skips the `.git` directory when scanning.
+    /// 验证 `scanSkillsInRepo` 在扫描时会跳过 `.git` 目录。
     ///
-    /// The `.git` directory is large and never contains real skills.
-    /// After removing `.skipsHiddenFiles`, we manually skip `.git` to avoid
-    /// false positives (e.g. a SKILL.md inside `.git/` should be ignored).
+    /// `.git` 目录体积大，而且不会包含真正的 skills，因此必须显式忽略。
     func testScanSkillsInRepoSkipsGitDirectory() async throws {
         let fm = FileManager.default
         let repoDir = fm.temporaryDirectory.appendingPathComponent("SkillsMaster-test-\(UUID().uuidString)")
 
-        // Create a real skill at top level
+        // 在顶层创建一个真实 skill。
         let realSkillDir = repoDir.appendingPathComponent("my-real-skill")
         try fm.createDirectory(at: realSkillDir, withIntermediateDirectories: true)
         let realContent = """
@@ -171,7 +164,7 @@ final class GitServiceTests: XCTestCase {
             encoding: .utf8
         )
 
-        // Create a fake SKILL.md inside `.git/` — this should be ignored
+        // 在 `.git/` 内创建一个假的 `SKILL.md`，它应该被忽略。
         let gitDir = repoDir.appendingPathComponent(".git")
         try fm.createDirectory(at: gitDir, withIntermediateDirectories: true)
         let fakeContent = """
@@ -192,15 +185,15 @@ final class GitServiceTests: XCTestCase {
         let gitService = GitService()
         let skills = await gitService.scanSkillsInRepo(repoDir: repoDir)
 
-        // Should find only the real skill, not the one inside .git/
+        // 最终只应找到真实 skill，而不包含 `.git/` 里的假文件。
         XCTAssertEqual(skills.count, 1, "Expected 1 skill (should skip .git), found \(skills.count)")
         let skill = try XCTUnwrap(skills.first)
         XCTAssertEqual(skill.id, "my-real-skill")
     }
 
-    /// Test that hidden paths are ignored when includeHiddenPaths is disabled.
+    /// 验证当 `includeHiddenPaths` 关闭时，隐藏路径会被忽略。
     ///
-    /// Custom repository browsing uses this mode by default to avoid ambiguity.
+    /// 这是 custom repository 浏览模式的默认行为，用于避免路径歧义。
     func testScanSkillsInRepoSkipsHiddenPathsWhenDisabled() async throws {
         let fm = FileManager.default
         let repoDir = fm.temporaryDirectory.appendingPathComponent("SkillsMaster-test-\(UUID().uuidString)")
@@ -244,10 +237,7 @@ final class GitServiceTests: XCTestCase {
         XCTAssertEqual(skills.count, 0, "Hidden paths should be skipped when includeHiddenPaths=false")
     }
 
-    /// Test de-duplication when both hidden and normal paths contain the same skill directory name.
-    ///
-    /// In this case we keep the non-hidden path because it is usually the user-facing source
-    /// and avoids duplicate rows + duplicated selection in SwiftUI List.
+    /// 验证当隐藏路径和普通路径都包含同名 skill 目录时，去重逻辑会优先保留普通路径。
     func testScanSkillsInRepoDeduplicatesSameIDPreferringNonHiddenPath() async throws {
         let fm = FileManager.default
         let repoDir = fm.temporaryDirectory.appendingPathComponent("SkillsMaster-test-\(UUID().uuidString)")

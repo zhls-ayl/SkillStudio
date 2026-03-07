@@ -1,70 +1,35 @@
 import Foundation
 
-/// VersionComparator is a utility enum for version number comparison (namespace pattern)
+/// `VersionComparator` 是一个用于比较版本号的 utility enum。
 ///
-/// Use enum instead of struct/class as namespace, because enum without cases cannot be instantiated,
-/// can only be accessed via static methods, semantically clearer (similar to Java's final class + private constructor).
-/// Consistent with the namespace pattern in Constants.swift.
-///
-/// Supports parsing and comparison of Semantic Versioning:
-/// - Format: major.minor.patch (e.g. "1.2.3")
-/// - Optional "v" prefix (e.g. "v1.2.3")
-/// - Ignore pre-release suffix (e.g. "-beta" in "1.2.3-beta")
+/// 这里把 `enum` 当作 namespace 使用，与 `Constants.swift` 的风格保持一致。
+/// 当前支持的版本格式包括：标准 `major.minor.patch`、可选 `v` 前缀，以及 pre-release 后缀忽略。
 enum VersionComparator {
 
-    /// Parse version string into integer array
+    /// 把版本字符串解析成整数数组。
     ///
-    /// Parsing rules:
-    /// 1. Remove "v" prefix (e.g. "v1.2.3" -> "1.2.3")
-    /// 2. Remove pre-release suffix (e.g. "1.2.3-beta" -> "1.2.3", split by "-" and take first part)
-    /// 3. Split by "." and convert to Int array (non-numeric parts ignored)
-    ///
-    /// - Parameter version: Version string (e.g. "v1.2.3-beta")
-    /// - Returns: Integer array (e.g. [1, 2, 3]), parts that cannot be parsed are ignored
-    ///
-    /// Examples:
-    /// - "1.2.3" -> [1, 2, 3]
-    /// - "v2.0" -> [2, 0]
-    /// - "1.0.0-beta.1" -> [1, 0, 0]
-    /// - "dev" -> []
+    /// 解析步骤包括：去掉 `v` 前缀、去掉 pre-release 后缀，再按 `.` 拆分并转成整数。
     static func parse(_ version: String) -> [Int] {
-        // Swift string operations chain calls (similar to Java's String method chain or Python's str methods)
+        // 这里使用 Swift 的字符串链式处理来逐步清洗输入。
         var cleaned = version
 
-        // hasPrefix checks string prefix (similar to Java's startsWith)
-        // dropFirst() returns Substring removing first character (similar to Python's s[1:])
-        // String() converts Substring to String (Swift's Substring and String are different types)
+        // 如果存在 `v` / `V` 前缀，就先去掉；注意 `dropFirst()` 返回的是 `Substring`。
         if cleaned.hasPrefix("v") || cleaned.hasPrefix("V") {
             cleaned = String(cleaned.dropFirst())
         }
 
-        // split(separator:) similar to Java's split() or Go's strings.Split()
-        // maxSplits: 1 means only split at the first "-" (keeping subsequent "-" if any)
-        // Thus "1.0.0-beta.1" will be split into ["1.0.0", "beta.1"]
+        // 如果包含 `-`，说明后面是 pre-release 后缀，这里只保留前半部分。
         if let dashIndex = cleaned.firstIndex(of: "-") {
             cleaned = String(cleaned[cleaned.startIndex..<dashIndex])
         }
 
-        // compactMap similar to Java Stream's filter+map combination:
-        // Execute Int($0) conversion for each element, automatically filtering out failed conversions (returning nil)
-        // For example "abc" in "1.2.abc" will be returned as nil by Int(), and thus discarded by compactMap
+        // `compactMap` 会把无法转换成 `Int` 的片段自动过滤掉。
         return cleaned.split(separator: ".").compactMap { Int($0) }
     }
 
-    /// Compare two version numbers, determine if latest is newer than current
+    /// 比较两个版本号，判断 `latest` 是否比 `current` 更新。
     ///
-    /// Compare major -> minor -> patch segment by segment, the first unequal segment determines the result.
-    /// If one version has fewer segments than the other, missing segments are treated as 0 (e.g. "1.2" is equivalent to "1.2.0").
-    ///
-    /// - Parameters:
-    ///   - current: Currently installed version (e.g. "1.0.0")
-    ///   - latest: Remote latest version (e.g. "1.1.0")
-    /// - Returns: true if latest version is newer
-    ///
-    /// Examples:
-    /// - isNewer(current: "1.0.0", latest: "1.0.1") -> true (patch update)
-    /// - isNewer(current: "1.0.0", latest: "1.0.0") -> false (same version)
-    /// - isNewer(current: "2.0.0", latest: "1.9.9") -> false (current is newer)
+    /// 比较规则是按 major → minor → patch 逐段对比；如果某一方段数不足，则缺失段按 `0` 处理。
     static func isNewer(current: String, latest: String) -> Bool {
         let currentParts = parse(current)
         let latestParts = parse(latest)

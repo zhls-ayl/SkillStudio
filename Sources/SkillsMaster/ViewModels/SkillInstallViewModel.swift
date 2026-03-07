@@ -20,25 +20,22 @@ final class SkillInstallViewModel: Identifiable {
 
     // MARK: - Phase Enum
 
-    /// Installation flow phases (finite state machine)
-    /// Similar to Java enum, but Swift enum can have associated values
+    /// 安装流程阶段（finite state machine）。
     enum Phase: Equatable {
-        /// Initial phase: waiting for user to input URL
+        /// 初始阶段：等待用户输入 URL。
         case inputURL
-        /// Cloning repository and scanning skills
+        /// 正在 clone repository 并扫描 skills。
         case fetching
-        /// Skills discovered, waiting for user selection
+        /// 已发现 skills，等待用户选择。
         case selectSkills
-        /// Installing selected skills
+        /// 正在安装用户选中的 skills。
         case installing
-        /// Installation completed
+        /// 安装完成。
         case completed
-        /// Error occurred, with error message attached
-        /// Associated values let enum cases carry data (Java enums lack this feature)
+        /// 出现错误，并附带错误信息。
         case error(String)
 
-        // Manual Equatable implementation: error case only compares type not message content
-        // Default Equatable synthesis handles this automatically, but explicitly implemented here to ensure correct behavior
+        // 手动实现 `Equatable`，确保不同阶段的比较行为符合当前 UI 预期。
         static func == (lhs: Phase, rhs: Phase) -> Bool {
             switch (lhs, rhs) {
             case (.inputURL, .inputURL),
@@ -55,9 +52,9 @@ final class SkillInstallViewModel: Identifiable {
         }
     }
 
-    /// Install source mode:
-    /// - remoteClone: current behavior (clone then install)
-    /// - localRepository: custom repository behavior (install from already-synced local repo)
+    /// 安装来源模式：
+    /// - `remoteClone`：先 clone 再安装
+    /// - `localRepository`：从已同步的本地 repository 安装
     private enum SourceMode {
         case remoteClone
         case localRepository
@@ -65,10 +62,10 @@ final class SkillInstallViewModel: Identifiable {
 
     // MARK: - State
 
-    /// User input repository address (supports "owner/repo" or full URL)
+    /// 用户输入的 repository 地址（支持 `owner/repo` 或完整 URL）。
     var repoURLInput = ""
 
-    /// Dynamic sheet title based on source mode.
+    /// 根据来源模式动态生成的 sheet 标题。
     var sheetTitle: String {
         switch sourceMode {
         case .remoteClone:
@@ -78,23 +75,15 @@ final class SkillInstallViewModel: Identifiable {
         }
     }
 
-    /// Whether current flow is local custom repository mode.
+    /// 当前是否处于本地 custom repository 模式。
     var isLocalSource: Bool { sourceMode == .localRepository }
 
-    /// F09: Whether to auto-trigger fetch when the install sheet appears
-    ///
-    /// When opened from Registry Browser with a pre-filled repo URL, this flag
-    /// tells the view to automatically start cloning and scanning on appear,
-    /// so the user doesn't need to manually click "Scan".
-    /// Reset to false after the auto-fetch triggers (one-shot flag).
+    /// F09：当 install sheet 打开时，是否自动触发 fetch。
+    /// 这个标记主要用于从 Registry Browser 跳转安装时的自动扫描。
     var autoFetch = false
 
-    /// F09: Target skill ID to pre-select after scanning
-    ///
-    /// When installing from Registry Browser, this is set to the specific skill's skillId
-    /// (e.g., "vercel-react-best-practices"). After scanning the repo, only this skill
-    /// will be pre-selected instead of all skills.
-    /// When nil (manual install flow), all uninstalled skills are selected by default.
+    /// F09：扫描完成后需要预选中的 target skill ID。
+    /// 从 Registry Browser 发起安装时，只会预选当前点击的 skill。
     var targetSkillId: String?
 
     /// 当前安装流程所处的阶段。

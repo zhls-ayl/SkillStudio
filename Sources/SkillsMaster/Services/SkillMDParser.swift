@@ -1,42 +1,27 @@
 import Foundation
 import Yams
 
-/// SkillMDParser is responsible for parsing SKILL.md files (YAML frontmatter + Markdown body)
+/// `SkillMDParser` 负责解析 `SKILL.md` 文件。
 ///
-/// SKILL.md file format:
-/// ```
-/// ---
-/// name: my-skill
-/// description: A skill description
-/// license: MIT
-/// metadata:
-///   author: someone
-///   version: "1.0"
-/// ---
-/// # Markdown content here
-/// ```
-///
-/// Parsing process:
-/// 1. Find `---` delimiters to extract frontmatter and body
-/// 2. Parse YAML frontmatter into SkillMetadata using Yams library
-/// 3. The remaining part serves as the markdown body
+/// 当前支持的格式是：`YAML frontmatter + Markdown body`。
+/// 解析流程包括提取 frontmatter、用 `Yams` 解码 metadata，以及保留剩余的 Markdown 正文。
 enum SkillMDParser {
 
-    /// Parse result: contains metadata and body
+    /// 解析结果：包含 metadata 与 Markdown 正文。
     struct ParseResult {
         let metadata: SkillMetadata
         let markdownBody: String
     }
 
     /// Parse error types
-    /// Swift's Error protocol is similar to Java's Exception but more lightweight
+    /// 解析时使用的错误类型。
     enum ParseError: Error, LocalizedError {
         case fileNotFound(URL)
         case invalidEncoding
         case noFrontmatter
         case invalidYAML(String)
 
-        /// Error description (similar to Java's getMessage())
+        /// 面向用户展示的错误描述。
         var errorDescription: String? {
             switch self {
             case .fileNotFound(let url):
@@ -52,11 +37,11 @@ enum SkillMDParser {
     }
 
     /// Parse SKILL.md from file URL
-    /// - Parameter url: Path to SKILL.md file
-    /// - Returns: Parse result (metadata + body)
-    /// - Throws: ParseError
+    /// 从文件 URL 解析 `SKILL.md`。
     ///
-    /// `throws` is similar to Java's checked exception or Go's error return
+    /// - Parameter url: `SKILL.md` 文件路径
+    /// - Returns: 解析结果
+    /// - Throws: `ParseError`
     static func parse(fileURL url: URL) throws -> ParseResult {
         guard FileManager.default.fileExists(atPath: url.path) else {
             throw ParseError.fileNotFound(url)
@@ -70,14 +55,13 @@ enum SkillMDParser {
         return try parse(content: content)
     }
 
-    /// Parse SKILL.md from string content
-    /// Exposed for unit testing
+    /// 从字符串内容解析 `SKILL.md`。
+    /// 该方法也会在单元测试中直接使用。
     static func parse(content: String) throws -> ParseResult {
-        // Extract frontmatter and body
+        // 提取 frontmatter 与 body。
         let (yamlString, body) = try extractFrontmatter(from: content)
 
-        // Parse YAML string into SkillMetadata using Yams library
-        // YAMLDecoder is similar to Java's ObjectMapper or Go's json.Unmarshal
+        // 使用 `Yams` 把 YAML 字符串解析成 `SkillMetadata`。
         let decoder = YAMLDecoder()
         let metadata: SkillMetadata
         do {
@@ -89,12 +73,11 @@ enum SkillMDParser {
         return ParseResult(metadata: metadata, markdownBody: body.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
-    /// Extract YAML frontmatter and markdown body from content
-    /// - Returns: (YAML string, Markdown body)
+    /// 从文本中提取 YAML frontmatter 与 Markdown body。
     private static func extractFrontmatter(from content: String) throws -> (String, String) {
         let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        // frontmatter must start with ---
+        // frontmatter 必须以 `---` 开头。
         guard trimmed.hasPrefix("---") else {
             throw ParseError.noFrontmatter
         }

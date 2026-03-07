@@ -1,26 +1,20 @@
 import Foundation
 import Combine
 
-/// SkillManager is the core orchestrator for skill management (Orchestrator pattern)
+/// `SkillManager` 是整个 skill 管理流程的核心 orchestrator。
 ///
-/// It composes all sub-services (Scanner, Parser, LockFileManager, SymlinkManager, FileSystemWatcher),
-/// providing a unified CRUD interface to the outside.
+/// 它会组合多个底层 `Service`（如 scanner、parser、lock file、symbolic link、file watcher），
+/// 对外提供统一的 CRUD / refresh / install / update 入口。
 ///
-/// @Observable is a macro introduced in macOS 14+, replacing the older ObservableObject protocol.
-/// When properties of an @Observable-marked class change, SwiftUI automatically refreshes related Views.
-/// Similar to Android Jetpack's LiveData or Vue.js reactive data.
-///
-/// @MainActor marks that all methods of this class execute on the main thread,
-/// as it holds UI state (skills, agents arrays), and UI updates must be on the main thread.
-/// Similar to Android's @UiThread annotation.
+/// `@Observable` 用于驱动 SwiftUI 的状态刷新，`@MainActor` 则保证所有 UI state 更新都发生在 main thread。
 @MainActor
 @Observable
 final class SkillManager {
 
     // MARK: - Error Types
 
-    /// Error types for manually linking repositories
-    /// LocalizedError protocol provides human-readable error descriptions (similar to Java's getMessage())
+    /// 手动关联 repository 时使用的错误类型。
+    /// 通过 `LocalizedError` 提供适合直接展示的错误描述。
     enum LinkError: Error, LocalizedError {
         /// No matching skill directory found in repository
         case skillNotFoundInRepo(String)
@@ -39,70 +33,63 @@ final class SkillManager {
 
     // MARK: - Published State (UI-bound state)
 
-    /// All discovered skills (deduplicated)
+    /// 当前已发现的全部 skills（已去重）。
     var skills: [Skill] = []
 
-    /// All detected Agents
+    /// 当前检测到的全部 Agents。
     var agents: [Agent] = []
 
-    /// Whether data is currently loading
+    /// 当前是否处于 loading 状态。
     var isLoading = false
 
-    /// Most recent error message
+    /// 最近一次错误信息。
     var errorMessage: String?
 
-    /// F12: Whether batch update checking is in progress (shows global progress)
+    /// F12：当前是否正在执行批量更新检查。
     var isCheckingUpdates = false
 
-    /// F12: Update status (indexed by skill id, persists across refreshes)
-    /// Stores update check status for each skill (5 states), keyed by skill.id
-    /// Changed type from [String: Bool] to [String: SkillUpdateStatus] for richer UI feedback
+    /// F12：更新状态表，以 `skill.id` 为 key，并在多次 refresh 之间保留。
     var updateStatuses: [String: SkillUpdateStatus] = [:]
 
     // MARK: - Custom Repositories State
 
-    /// User-configured custom repositories (GitHub/GitLab via SSH).
-    /// Loaded from `~/.agents/.skillsmaster-repos.json` on first refresh.
-    /// Views bind to this array to render the "Custom Repos" sidebar section.
+    /// 用户配置的 custom repositories（支持 GitHub / GitLab）。
+    /// 首次 `refresh()` 时会从配置文件中加载，并驱动 sidebar 中的 `Custom Repos` 区域。
     var repositories: [SkillRepository] = []
 
-    /// Per-repository sync status (transient — not persisted to disk).
-    /// Keyed by repository UUID; used by SidebarView and RepositoryBrowserView to show spinner/error.
+    /// 每个 repository 的同步状态（仅保存在内存中，不落盘）。
     var repoSyncStatuses: [UUID: SkillRepository.SyncStatus] = [:]
 
     // MARK: - App Update State (application update status)
 
-    /// Latest release info (nil means no update available or not yet checked)
-    /// Multiple Views need access (Settings About page, SidebarView toolbar reminder icon),
-    /// so it's placed in global SkillManager rather than ViewModel
+    /// 最新的 Release 信息（`nil` 表示尚未检查，或当前没有可更新版本）。
     var appUpdateInfo: AppUpdateInfo?
 
-    /// Whether app update check is in progress (shows loading indicator)
+    /// 当前是否正在检查 application update。
     var isCheckingAppUpdate = false
 
-    /// Whether update download is in progress (shows progress bar)
+    /// 当前是否正在下载更新包。
     var isDownloadingUpdate = false
 
-    /// Download progress (0.0 ~ 1.0), used for progress bar display
+    /// 下载进度（`0.0 ~ 1.0`）。
     var downloadProgress: Double = 0
 
-    /// Error message during update process (displayed to user, retryable)
+    /// 更新流程中的错误信息。
     var updateError: String?
 
-    // MARK: - Dependencies (dependent sub-services)
+    // MARK: - Dependencies
 
     private let scanner = SkillScanner()
     private let detector = AgentDetector()
     private let lockFileManager = LockFileManager()
     private let watcher = FileSystemWatcher()
-    /// Application update checker (GitHub Release check, download, install)
+    /// 负责 application update 的检查、下载与安装。
     private let updateChecker = UpdateChecker()
-    /// F10/F12: Git operations service for installation and update checking
+    /// F10 / F12：用于安装与更新检查的 Git service。
     private let gitService = GitService()
-    /// F12: SkillsMaster private commit hash cache, independent of .skill-lock.json
-    /// Stored in ~/.agents/.skillsmaster-cache.json, doesn't pollute npx skills' lock file format
+    /// F12：SkillsMaster 私有的 commit hash cache，与 `.skill-lock.json` 解耦。
     private let commitHashCache = CommitHashCache()
-    /// Custom repositories: manages user-configured GitHub/GitLab repos as Skills sources
+    /// 管理用户配置的 custom repositories。
     let repositoryManager = RepositoryManager()
     private var cancellables = Set<AnyCancellable>()
 
@@ -112,25 +99,22 @@ final class SkillManager {
         setupFileWatcher()
     }
 
-    /// Set up file system monitoring
-    /// Automatically triggers refresh when file system changes
+    /// 建立 file system 监控，在目录变化时自动触发 `refresh()`。
     private func setupFileWatcher() {
-        // sink is the subscription method of Combine framework (similar to RxJava's subscribe)
-        // When watcher.onChange emits an event, execute the code in the closure
+        // `sink` 是 Combine 中的订阅入口；当 `watcher.onChange` 发出事件时，就在闭包里处理。
         watcher.onChange
             .sink { [weak self] in
-                // Task { } creates an asynchronous task (similar to Go's go func(){})
+                // 通过 `Task {}` 启动新的 async 任务。
                 Task { await self?.refresh() }
             }
-            .store(in: &cancellables)  // Save subscription to prevent premature release
+            .store(in: &cancellables)  // 持有订阅，避免被提前释放
     }
 
     // MARK: - Core Operations
 
-    /// Refresh all data: re-detect Agents, scan skills, and load custom repositories.
+    /// 刷新全部数据：重新检测 Agents、扫描 skills，并加载 custom repositories。
     ///
-    /// Also triggers a background sync of all enabled custom repositories (git pull).
-    /// The sync runs asynchronously so it does not block the UI from loading.
+    /// 同时会在后台触发需要自动同步的 repository，但不会阻塞主界面的加载。
     func refresh() async {
         isLoading = true
         errorMessage = nil
@@ -315,30 +299,25 @@ final class SkillManager {
             // Something exists at agent's skills dir → remove it (symbolic link or real directory)
             try await unassignSkill(skill, from: agent)
         } else {
-            // Nothing exists → create symbolic link in this agent's own directory
-            // This works whether the agent has an inherited installation or not
+            // 如果当前目录下什么都没有，就在这个 Agent 自己的目录里创建 direct symbolic link。
+            // 无论它之前是否通过继承方式可见，这里都可以正常建立直接安装。
             try await assignSkill(skill, to: agent)
         }
     }
 
     // MARK: - F10: One-Click Install
 
-    /// Install skill from cloned repository to local
+    /// 把已 clone repository 中的 skill 安装到本地 canonical 目录。
     ///
-    /// Installation flow:
-    /// 1. Get tree hash (for lock file recording, subsequent update detection)
-    /// 2. Copy files to canonical directory (~/.skillsmaster/skills/<name>/)
-    /// 3. Create symbolic links for selected Agents
-    /// 4. Create/update lock file entry
-    /// 5. Refresh UI
+    /// 当前安装流程包括：获取 tree hash、复制文件、创建 symbolic link、更新 lock file，最后刷新 UI。
     ///
     /// - Parameters:
-    ///   - repoDir: Local temporary directory of cloned repository
-    ///   - skill: Skill info to install (from GitService.scanSkillsInRepo)
-    ///   - repoSource: Repository source identifier (e.g. "vercel-labs/skills", for lock file)
-    ///   - repoURL: Full repository URL (e.g. "https://github.com/vercel-labs/skills.git")
-    ///   - sourceType: Source type stored in lock entry (e.g. "github", "custom")
-    ///   - targetAgents: Set of Agents to install to
+    ///   - repoDir: 已 clone 的本地临时目录
+    ///   - skill: 待安装的 skill 信息
+    ///   - repoSource: repository 的 source 标识
+    ///   - repoURL: 完整 repository URL
+    ///   - sourceType: 写入 lock entry 的 source 类型
+    ///   - targetAgents: 要安装到的 Agent 集合
     func installSkill(
         from repoDir: URL,
         skill: GitService.DiscoveredSkill,
@@ -349,44 +328,42 @@ final class SkillManager {
     ) async throws {
         let fm = FileManager.default
 
-        // 1. Get tree hash (git rev-parse HEAD:<folderPath>)
+        // 1. 获取 tree hash。
         let treeHash = try await gitService.getTreeHash(for: skill.folderPath, in: repoDir)
 
-        // 1.5 Get commit hash and write to CommitHashCache (independent of lock file)
-        // commit hash is used for generating GitHub compare URL later, showing update differences
+        // 1.5 获取 commit hash，并写入私有 `CommitHashCache`。
+        // 后续生成 GitHub compare URL 时会用到这个值。
         let commitHash = try await gitService.getCommitHash(in: repoDir)
         await commitHashCache.setHash(for: skill.id, hash: commitHash)
         try await commitHashCache.save()
 
-        // 2. Copy to canonical directory
-        // canonical path: ~/.skillsmaster/skills/<skillName>/
+        // 2. 复制到 canonical 目录。
         let canonicalDir = SkillScanner.sharedSkillsURL.appendingPathComponent(skill.id)
         let sourceDir = repoDir.appendingPathComponent(skill.folderPath)
 
-        // If already exists, delete first then copy (overwrite installation)
+        // 如果目标已存在，先删再拷贝，等价于覆盖安装。
         if fm.fileExists(atPath: canonicalDir.path) {
             try fm.removeItem(at: canonicalDir)
         }
 
-        // Ensure parent directory exists
+        // 确保父目录存在。
         if !fm.fileExists(atPath: SkillScanner.sharedSkillsURL.path) {
             try fm.createDirectory(at: SkillScanner.sharedSkillsURL, withIntermediateDirectories: true)
         }
 
-        // copyItem is like cp -r, recursively copies entire directory
+        // `copyItem` 的效果类似 `cp -r`。
         try fm.copyItem(at: sourceDir, to: canonicalDir)
 
-        // 3. Create symbolic links for selected Agents
+        // 3. 为选中的 Agents 创建 symbolic links。
         for agent in targetAgents {
-            // Use try? to ignore existing symbolic link errors (idempotent operation)
+            // 这里使用 `try?` 忽略“已存在”类错误，保持幂等。
             try? SymlinkManager.createSymlink(from: canonicalDir, to: agent)
         }
 
-        // 4. Update lock file
-        // Ensure lock file exists (may not exist on first installation)
+        // 4. 更新 lock file；首次安装时需要先确保文件存在。
         try await lockFileManager.createIfNotExists()
 
-        // ISO 8601 timestamp (consistent with npx skills CLI format)
+        // 使用 ISO 8601 时间戳，保持与 `npx skills` 一致。
         let now = ISO8601DateFormatter().string(from: Date())
         let entry = LockEntry(
             source: repoSource,
@@ -399,31 +376,24 @@ final class SkillManager {
         )
         try await lockFileManager.updateEntry(skillName: skill.id, entry: entry)
 
-        // 5. Refresh UI
+        // 5. 刷新 UI。
         await refresh()
     }
 
     // MARK: - F12: Update Check
 
-    /// Check for updates for a single skill
+    /// 检查单个 skill 是否存在更新。
     ///
-    /// Flow:
-    /// 1. Get source repository URL and skillPath from lockEntry
-    /// 2. Check if CommitHashCache has local commit hash
-    ///    - Yes: use shallow clone (fast, only fetch remote latest state)
-    ///    - No (old skill, installed via npx skills): use full clone, search git history for backfill
-    /// 3. Get remote tree hash and commit hash
-    /// 4. Compare with local lockEntry.skillFolderHash
-    /// 5. Clean up temporary directory
+    /// 主要步骤是：读取 `lockEntry`、决定 shallow / full clone、获取远端 hash、与本地 hash 对比，最后清理临时目录。
     ///
-    /// - Parameter skill: Skill to check (must have lockEntry)
-    /// - Returns: Tuple (has update, remote tree hash, remote commit hash)
+    /// - Parameter skill: 待检查的 skill（必须带有 `lockEntry`）
+    /// - Returns: `(是否有更新, 远端 tree hash, 远端 commit hash)`
     func checkForUpdate(skill: Skill) async throws -> (hasUpdate: Bool, remoteHash: String?, remoteCommitHash: String?) {
         guard let lockEntry = skill.lockEntry else {
             return (false, nil, nil)
         }
 
-        // Derive folderPath from skillPath (remove trailing "/SKILL.md")
+        // 从 `skillPath` 推导出 folderPath。
         let folderPath: String
         if lockEntry.skillPath.hasSuffix("/SKILL.md") {
             folderPath = String(lockEntry.skillPath.dropLast("/SKILL.md".count))
@@ -431,36 +401,36 @@ final class SkillManager {
             folderPath = lockEntry.skillPath
         }
 
-        // Check if CommitHashCache has local commit hash
+        // 检查 `CommitHashCache` 中是否已有本地 commit hash。
         let localCommitHash = await commitHashCache.getHash(for: skill.id)
-        // If no commit hash (old skill), need full clone to search git history for backfill
+        // 如果没有 commit hash（常见于旧 skill），就需要 full clone 来回填。
         let needsBackfill = localCommitHash == nil
 
-        // Decide clone depth based on whether backfill is needed
+        // 根据是否需要 backfill 决定 clone 深度。
         let repoDir = try await gitService.cloneRepo(repoURL: lockEntry.sourceUrl, shallow: !needsBackfill)
         defer {
-            // defer ensures cleanup runs regardless of how function returns (similar to Go's defer or Java's finally)
+            // 使用 `defer` 确保函数无论如何返回，都能清理临时目录。
             Task { await gitService.cleanupTempDirectory(repoDir) }
         }
 
-        // Get remote tree hash
+        // 获取远端 tree hash。
         let remoteHash = try await gitService.getTreeHash(for: folderPath, in: repoDir)
 
-        // Get remote commit hash
+        // 获取远端 commit hash。
         let remoteCommitHash = try await gitService.getCommitHash(in: repoDir)
 
-        // Backfill: if local doesn't have commit hash, search git history for matching commit
+        // 如果本地缺少 commit hash，就回查 git history 做 backfill。
         if needsBackfill {
             if let foundHash = try await gitService.findCommitForTreeHash(
                 treeHash: lockEntry.skillFolderHash, folderPath: folderPath, in: repoDir
             ) {
-                // Found matching commit hash, persist to cache (won't search next time)
+                // 找到匹配的 commit hash 后写入 cache，下次就不需要重复搜索。
                 await commitHashCache.setHash(for: skill.id, hash: foundHash)
                 try? await commitHashCache.save()
             }
         }
 
-        // Compare hashes
+        // 对比本地与远端 hash。
         let hasUpdate = remoteHash != lockEntry.skillFolderHash
         return (hasUpdate, remoteHash, remoteCommitHash)
     }
@@ -762,7 +732,7 @@ final class SkillManager {
         if fm.fileExists(atPath: canonicalDir.path) {
             try fm.removeItem(at: canonicalDir)
         }
-        // Ensure parent directory exists
+        // 确保父目录存在。
         let parentDir = canonicalDir.deletingLastPathComponent()
         if !fm.fileExists(atPath: parentDir.path) {
             try fm.createDirectory(at: parentDir, withIntermediateDirectories: true)

@@ -3,21 +3,19 @@ import AppKit
 
 /// `AppUpdateInfo` 表示从 GitHub Release API 获取到的版本信息。
 ///
-/// 这里通过 `Codable` 完成 JSON 与 Swift struct 之间的双向映射，
-/// 并使用 `CodingKeys` 把 Swift 的 `camelCase` 属性名映射到 GitHub API 返回的 `snake_case` 字段。
+/// 这里通过 `Codable` 完成 JSON ↔︎ Swift struct 的映射，并用 `CodingKeys` 处理字段命名差异。
 struct AppUpdateInfo: Codable, Sendable {
-    /// GitHub Release tag name (e.g. "v1.2.0")
+    /// GitHub Release 的 tag 名，例如 `v1.2.0`。
     let tagName: String
-    /// Release page URL (for opening in browser)
+    /// Release 页面 URL。
     let htmlUrl: String
-    /// Release title (e.g. "SkillsMaster v1.2.0")
+    /// Release 标题。
     let name: String?
-    /// Release description (Markdown format changelog)
+    /// Release 描述，通常是 Markdown changelog。
     let body: String?
-    /// Release publish time (ISO 8601 format)
+    /// Release 发布时间（ISO 8601）。
     let publishedAt: String?
-    /// List of release asset files (zip, dmg, etc.)
-    /// GitHub API returns assets as an array, each element contains filename and download URL
+    /// Release 附件列表，例如 zip、dmg 等。
     let assets: [Asset]?
 
     /// Release asset file information
@@ -71,8 +69,7 @@ struct AppUpdateInfo: Codable, Sendable {
 
 /// `UpdateChecker` 负责检查并执行 application update。
 ///
-/// 由于这里同时涉及 network request、文件操作和安装流程，
-/// 使用 `actor` 可以把可变状态封装起来，保证并发访问时的 thread safety。
+/// 这里同时涉及 network request、文件操作和安装流程，因此使用 `actor` 保证 thread safety。
 actor UpdateChecker {
 
     /// GitHub API endpoint: get latest Release
@@ -99,24 +96,21 @@ actor UpdateChecker {
             throw URLError(.badURL)
         }
 
-        // URLRequest encapsulates HTTP request (similar to Java's HttpURLConnection or Go's http.Request)
+        // `URLRequest` 用来封装 HTTP 请求。
         var request = URLRequest(url: url)
-        // Set 10-second timeout to avoid UI waiting too long due to network issues
+        // 设置 10 秒超时，避免网络异常时 UI 等待过久。
         request.timeoutInterval = 10
-        // GitHub API requires Accept header to specify JSON format
+        // 通过 `Accept` header 指定 GitHub API 返回 JSON。
         request.setValue("application/vnd.github.v3+json", forHTTPHeaderField: "Accept")
 
-        // URLSession.shared is the globally shared network session (similar to Java's HttpClient or Python's requests.Session)
-        // data(for:) sends request and returns (Data, URLResponse) tuple
+        // `URLSession.shared` 是全局共享的网络会话；`data(for:)` 会返回 `(Data, URLResponse)`。
         let (data, response) = try await URLSession.shared.data(for: request)
 
-        // Check HTTP status code (URLResponse needs downcasting to HTTPURLResponse to access statusCode)
-        // as? is Swift's conditional type casting (similar to Java's instanceof + cast)
-        // GitHub API returns non-200 status codes in cases like rate limit, 404, etc.,
-        // but URLSession doesn't treat HTTP error status codes as errors (only network-level errors throw)
+        // 检查 HTTP status code。
+        // 这里需要先把 `URLResponse` 向下转型为 `HTTPURLResponse` 才能读取 `statusCode`。
+        // 注意：`URLSession` 不会把非 200 这类 HTTP 错误自动抛出，需要手动处理。
         if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
-            // Try to extract GitHub API error message from response body (JSON format {"message": "..."})
-            // e.g. rate limit returns "API rate limit exceeded for ..."
+            // 尝试从返回的 JSON 中提取 GitHub API 的错误消息。
             let message: String
             if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let apiMessage = json["message"] as? String {
@@ -131,85 +125,70 @@ actor UpdateChecker {
             )
         }
 
-        // JSONDecoder decodes JSON Data to Swift struct (similar to Java's ObjectMapper or Go's json.Unmarshal)
+        // 用 `JSONDecoder` 把 JSON 解码成 Swift struct。
         let decoder = JSONDecoder()
         return try decoder.decode(AppUpdateInfo.self, from: data)
     }
 
     // MARK: - Check Interval Control
 
-    /// Determine whether automatic update check should run (4-hour interval)
+    /// 判断是否应该执行自动更新检查（4 小时间隔）。
     ///
-    /// nonisolated marker means this method doesn't need actor isolation protection,
-    /// can be called directly on any thread (no await needed).
-    /// Because UserDefaults itself is thread-safe, no extra actor protection needed.
+    /// 这里使用 `nonisolated`，因为只读 `UserDefaults`，不依赖 actor 内部可变状态。
     nonisolated func shouldAutoCheck() -> Bool {
         let defaults = UserDefaults.standard
         let lastCheck = defaults.double(forKey: UpdateChecker.lastCheckKey)
 
-        // If never checked (lastCheck == 0), should check
+        // 如果还从未检查过，就直接允许检查。
         guard lastCheck > 0 else { return true }
 
-        // Date().timeIntervalSince1970 returns current Unix timestamp in seconds, similar to Java's System.currentTimeMillis()/1000
+        // `Date().timeIntervalSince1970` 返回当前 Unix 时间戳（秒）。
         let now = Date().timeIntervalSince1970
-        let fourHours: TimeInterval = 4 * 60 * 60  // 4 hours = 14400 seconds
+        let fourHours: TimeInterval = 4 * 60 * 60  // 4 小时 = 14400 秒
 
-        // Only allow automatic check if more than 4 hours since last check
-        // GitHub unauthenticated API limit is 60/hour, 4-hour interval means max 6/day, well below limit
+        // 只有距离上次检查超过 4 小时，才允许自动检查。
         return (now - lastCheck) >= fourHours
     }
 
-    /// Record current check time to UserDefaults
-    ///
-    /// nonisolated for same reason as shouldAutoCheck()
+    /// 把当前检查时间写入 `UserDefaults`。
     nonisolated func recordCheckTime() {
         UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: UpdateChecker.lastCheckKey)
     }
 
     // MARK: - Download Update
 
-    /// Download update zip file to temporary directory
+    /// 把更新 zip 下载到临时目录。
     ///
-    /// Uses URLSessionDownloadDelegate to report download progress via callback to caller.
-    ///
-    /// - Parameters:
-    ///   - url: Download URL for zip file
-    ///   - progressHandler: Progress callback, parameter is 0.0~1.0 progress value
-    /// - Returns: Path to downloaded temporary file
-    /// - Throws: Network error or file operation error
+    /// 这里通过 `URLSessionDownloadDelegate` 把下载进度回调给调用方。
     func downloadUpdate(from url: String, progressHandler: @Sendable @escaping (Double) -> Void) async throws -> URL {
         guard let downloadURL = URL(string: url) else {
             throw URLError(.badURL)
         }
 
-        // DownloadDelegate is internal helper class implementing URLSessionDownloadDelegate protocol to track download progress
-        // Defined inside actor to maintain encapsulation (similar to Java's inner class)
+        // `DownloadDelegate` 是一个内部辅助类，用来跟踪下载进度。
         let delegate = DownloadDelegate(progressHandler: progressHandler)
 
-        // URLSession(configuration:delegate:delegateQueue:) creates session with delegate
-        // .default uses default configuration (similar to OkHttp's default Builder)
-        // delegateQueue: nil lets system choose queue automatically
+        // 创建带 delegate 的 `URLSession`。
         let session = URLSession(configuration: .default, delegate: delegate, delegateQueue: nil)
 
-        // download(from:) starts download task, returns temporary file path and response when complete
+        // `download(from:)` 会启动下载，并在完成后返回临时文件路径。
         let (tempURL, _) = try await session.download(from: downloadURL)
 
-        // Downloaded file is in system temp directory, but URLSession may auto-clean it,
-        // so we need to move it to our own temp directory
+        // 下载结果位于系统临时目录，后续可能被自动清理，因此这里会再移动到自己的临时目录。
         let fm = FileManager.default
-        // NSTemporaryDirectory() returns system temp directory path (e.g. /tmp/ or ~/Library/Caches/TemporaryItems/)
+        // `NSTemporaryDirectory()` 返回系统临时目录路径。
         let destDir = URL(fileURLWithPath: NSTemporaryDirectory())
             .appendingPathComponent("SkillsMasterUpdate")
 
-        // Create destination directory (withIntermediateDirectories: true similar to mkdir -p)
+        // 创建目标目录；`withIntermediateDirectories: true` 的效果类似 `mkdir -p`。
         try fm.createDirectory(at: destDir, withIntermediateDirectories: true)
 
         let destURL = destDir.appendingPathComponent("SkillsMaster.zip")
-        // Remove any leftover from previous download
+        // 清理上一次下载遗留的旧文件。
         if fm.fileExists(atPath: destURL.path) {
             try fm.removeItem(at: destURL)
         }
-        // moveItem atomically moves file (similar to mv command)
+        // `moveItem` 的效果类似 `mv`。
         try fm.moveItem(at: tempURL, to: destURL)
 
         return destURL
@@ -217,10 +196,9 @@ actor UpdateChecker {
 
     // MARK: - Install Update
 
-    /// Execute update installation: extract zip → replace .app bundle → restart app
+    /// 执行更新安装：解压 zip → 替换 `.app` bundle → 重启 app。
     ///
-    /// Core principle: Running macOS apps cannot directly replace their own binary files (files are locked),
-    /// so replacement must be done by external process (shell script) after app exits.
+    /// 由于运行中的 macOS app 不能直接替换自己的二进制文件，因此这里必须借助外部脚本在退出后完成替换。
     /// This is the standard approach for macOS self-updates (Sparkle framework uses similar approach).
     ///
     /// Flow:

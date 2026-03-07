@@ -14,13 +14,7 @@ final class SkillContentFetcherTests: XCTestCase {
 
     // MARK: - URL Construction Tests
 
-    /// Test that the raw GitHub URL is correctly constructed for flat layout on main branch
-    ///
-    /// Verifies the URL pattern:
-    /// `https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}/SKILL.md`
-    ///
-    /// `async` is needed because SkillContentFetcher is an `actor` —
-    /// accessing its methods from outside requires `await` (Swift's data race safety guarantee).
+    /// 验证 flat layout + `main` branch 下 raw GitHub URL 的构造结果是否正确。
     func testBuildRawURLFlatLayout() async {
         let fetcher = SkillContentFetcher()
         let url = await fetcher.buildRawURL(
@@ -35,9 +29,7 @@ final class SkillContentFetcherTests: XCTestCase {
         )
     }
 
-    /// Test URL construction for monorepo layout (skills/ subdirectory)
-    ///
-    /// Many repos like `inference-sh/skills` store skills under `skills/{skillId}/SKILL.md`.
+    /// 验证 monorepo layout（`skills/` 子目录）下的 URL 构造。
     func testBuildRawURLMonorepoLayout() async {
         let fetcher = SkillContentFetcher()
         let url = await fetcher.buildRawURL(
@@ -52,7 +44,7 @@ final class SkillContentFetcherTests: XCTestCase {
         )
     }
 
-    /// Test that the raw GitHub URL is correctly constructed for the master branch fallback
+    /// 验证 `master` branch fallback 场景下的 URL 构造。
     func testBuildRawURLMasterBranch() async {
         let fetcher = SkillContentFetcher()
         let url = await fetcher.buildRawURL(
@@ -67,9 +59,7 @@ final class SkillContentFetcherTests: XCTestCase {
         )
     }
 
-    /// Test URL construction with a source that contains special characters in the repo name
-    ///
-    /// GitHub repo names can contain hyphens and dots — verify they're preserved in the URL.
+    /// 验证当 repo 名包含连字符或点号时，URL 构造仍能保留这些字符。
     func testBuildRawURLWithHyphensAndDots() async {
         let fetcher = SkillContentFetcher()
         let url = await fetcher.buildRawURL(
@@ -86,11 +76,7 @@ final class SkillContentFetcherTests: XCTestCase {
 
     // MARK: - Candidate URL Tests
 
-    /// Test that candidateURLs generates all 8 expected URLs in the correct order
-    ///
-    /// The fetch strategy tries 4 layouts × 2 branches = 8 URLs:
-    /// main/flat → main/skills/ → main/.claude/skills/ → main/root →
-    /// master/flat → master/skills/ → master/.claude/skills/ → master/root
+    /// 验证 `candidateURLs` 会按预期顺序生成全部 8 个候选 URL。
     func testCandidateURLsGeneratesAllCombinations() async {
         let fetcher = SkillContentFetcher()
         let urls = await fetcher.candidateURLs(

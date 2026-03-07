@@ -1,12 +1,10 @@
 import XCTest
 @testable import SkillsMaster
 
-/// Unit tests for AgentType enum
+/// `AgentType` 的单元测试。
 ///
-/// Verifies that each agent's computed properties return the expected values.
-/// Swift enums are exhaustively checked by the compiler, so adding a new case
-/// without updating all switch statements will cause a compile error — but these
-/// tests provide additional runtime validation of the property values themselves.
+/// 这些测试用于验证各个 Agent 的 computed properties 是否返回了预期值。
+/// 虽然 Swift 对 `enum` 的 `switch` 已经有编译期穷尽性检查，但这里仍通过运行时测试补一层行为校验。
 final class AgentTypeTests: XCTestCase {
 
     // MARK: - Antigravity Agent Properties

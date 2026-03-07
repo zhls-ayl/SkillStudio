@@ -2,17 +2,15 @@ import XCTest
 import Markdown
 @testable import SkillsMaster
 
-/// Unit tests for the SwiftUIMarkdownVisitor — the AST visitor that converts Markdown nodes to SwiftUI views
+/// `SwiftUIMarkdownVisitor` 相关单元测试。
 ///
-/// Since SwiftUI views cannot be directly introspected in unit tests (they require a running app),
-/// these tests focus on:
-/// 1. **Parsing correctness**: Verify swift-markdown parses content into expected AST structure
-/// 2. **Visitor completeness**: Verify the visitor handles all common node types without crashing
-/// 3. **Inline text building**: Verify the inline text concatenation logic
+/// 由于 SwiftUI `View` 在单元测试中无法像普通数据结构那样直接检查，
+/// 这里主要验证三类内容：
+/// 1. Markdown 解析结果是否符合预期 AST 结构
+/// 2. visitor 是否能覆盖常见 node 类型且不会崩溃
+/// 3. inline text 拼接逻辑是否正确
 ///
-/// Visual rendering (fonts, colors, layout) requires manual verification — documented in the PR description.
-///
-/// XCTest is Swift's testing framework (similar to JUnit). Test classes extend XCTestCase.
+/// 视觉渲染（字体、颜色、布局）仍然需要人工验证。
 final class MarkdownRenderingTests: XCTestCase {
 
     // MARK: - Parsing Tests

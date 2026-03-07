@@ -39,8 +39,7 @@ actor RepositoryManager {
 
     // MARK: - Persisted Config
 
-    /// Top-level wrapper for JSON serialization.
-    /// Versioned so we can migrate the schema in the future.
+    /// repository 配置文件的顶层 JSON 结构。
     private struct RepoConfig: Codable {
         var version: Int = 1
         var repositories: [SkillRepository] = []
@@ -48,33 +47,31 @@ actor RepositoryManager {
 
     // MARK: - Private State
 
-    /// Cached in-memory list of repositories (mirrors what's on disk)
+    /// 内存中的 repository 列表缓存，与磁盘配置保持镜像关系。
     private var cachedRepos: [SkillRepository] = []
 
-    /// Whether the config has been loaded from disk at least once
+    /// 配置是否已经至少从磁盘加载过一次。
     private var isLoaded = false
 
-    /// Shared GitService instance for clone/pull operations
+    /// 供 clone / pull 复用的 `GitService` 实例。
     private let gitService = GitService()
 
     // MARK: - Config File Path
 
-    /// Expanded absolute path to the config file
+    /// 展开 `~` 后得到的配置文件绝对路径。
     private var configFilePath: String {
         NSString(string: Constants.skillReposConfigPath).expandingTildeInPath
     }
 
-    /// Expanded absolute path to the repos base directory
+    /// 展开 `~` 后得到的 repository 根目录绝对路径。
     private var reposBasePath: String {
         NSString(string: Constants.reposBasePath).expandingTildeInPath
     }
 
     // MARK: - Public API
 
-    /// Load and return all configured repositories from disk.
-    ///
-    /// On first call, reads from `~/.agents/.skillsmaster-repos.json`.
-    /// Subsequent calls return the in-memory cache (no re-read from disk).
+    /// 从磁盘加载并返回全部 repository 配置。
+    /// 首次调用时会真正读取文件，后续则直接返回内存 cache。
     func loadAll() async -> [SkillRepository] {
         if !isLoaded {
             await loadFromDisk()
@@ -82,10 +79,7 @@ actor RepositoryManager {
         return cachedRepos
     }
 
-    /// Add a new repository configuration and persist it to disk.
-    ///
-    /// - Parameter repo: The repository to add (id and localSlug must be unique)
-    /// - Throws: RepositoryError.alreadyExists if a repo with the same slug already exists
+    /// 新增 repository 配置并持久化到磁盘。
     func add(_ repo: SkillRepository) async throws {
         if !isLoaded { await loadFromDisk() }
 
@@ -98,10 +92,8 @@ actor RepositoryManager {
         await saveToDisk()
     }
 
-    /// Remove a repository configuration by ID and persist the change.
-    ///
-    /// Note: This does NOT delete the cloned directory from disk.
-    /// The local clone is left intact so users don't accidentally lose data.
+    /// 按 ID 删除 repository 配置，并持久化变更。
+    /// 注意：这里只删除配置，不会删除本地 clone 目录。
     func remove(id: UUID) async {
         if !isLoaded { await loadFromDisk() }
         let removed = cachedRepos.filter { $0.id == id }

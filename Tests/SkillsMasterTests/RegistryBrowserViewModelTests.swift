@@ -1,30 +1,21 @@
 import XCTest
 @testable import SkillsMaster
 
-/// Unit tests for RegistryBrowserViewModel's source-aware "Installed" badge matching.
+/// `RegistryBrowserViewModel` 的单元测试。
 ///
-/// These tests verify the fix for the bug where registry skills with the same skillId
-/// but from different repositories were all incorrectly showing as "Installed".
-/// The fix makes `isInstalled()` check both skillId AND source repo.
+/// 这些测试主要覆盖 source-aware 的 “Installed” 标记逻辑，
+/// 用来防止不同 repository 中同名 `skillId` 被错误地同时标记为已安装。
 ///
-/// XCTest is Swift's built-in testing framework (similar to JUnit / Go's testing package).
-/// @MainActor is required because RegistryBrowserViewModel and SkillManager are @MainActor-isolated.
+/// 由于 `RegistryBrowserViewModel` 和 `SkillManager` 都是 `@MainActor` 隔离对象，
+/// 因此测试类也需要运行在 `@MainActor` 上。
 @MainActor
 final class RegistryBrowserViewModelTests: XCTestCase {
 
     // MARK: - Helpers
 
-    /// Create a minimal Skill model for testing.
-    ///
-    /// Builds a Skill struct with just enough fields to drive the ViewModel's
-    /// `syncInstalledSkills()` logic (id and optional lockEntry).
-    /// - Parameters:
-    ///   - id: The skill directory name (e.g., "ui-ux-pro-max")
-    ///   - source: Optional source repo in "owner/repo" format. When provided, a LockEntry is attached.
-    /// - Returns: A Skill instance suitable for testing
+    /// 创建一个最小可用的 `Skill` model，用于测试。
     private func makeSkill(id: String, source: String? = nil) -> Skill {
-        // Build a lock entry only if source is provided.
-        // Skills without a lock entry represent manual installs (not from registry).
+        // 只有传入 `source` 时才构造 `LockEntry`；否则表示手动安装的 skill。
         let lockEntry: LockEntry? = source.map { src in
             LockEntry(
                 source: src,
@@ -48,13 +39,7 @@ final class RegistryBrowserViewModelTests: XCTestCase {
         )
     }
 
-    /// Create a minimal RegistrySkill for testing.
-    ///
-    /// RegistrySkill represents a skill from the skills.sh registry.
-    /// - Parameters:
-    ///   - skillId: The skill directory name (e.g., "ui-ux-pro-max")
-    ///   - source: The repository in "owner/repo" format (e.g., "nextlevelbuilder/ui-ux-pro-max-skill")
-    /// - Returns: A RegistrySkill instance suitable for testing
+    /// 创建一个最小可用的 `RegistrySkill`，用于 registry 场景测试。
     private func makeRegistrySkill(skillId: String, source: String) -> RegistrySkill {
         RegistrySkill(
             id: "\(source)/\(skillId)",
@@ -69,10 +54,7 @@ final class RegistryBrowserViewModelTests: XCTestCase {
 
     // MARK: - isInstalled Tests
 
-    /// Test: isInstalled returns true when both skillId AND source match the installed skill.
-    ///
-    /// This is the happy path — user installed "ui-ux-pro-max" from "alice/skills",
-    /// and the registry shows the same skill from the same repo.
+    /// 验证：当 `skillId` 与 `source` 都匹配时，`isInstalled` 返回 `true`。
     func testIsInstalledReturnsTrueWhenSourceMatches() {
         let skillManager = SkillManager()
         // Simulate a locally installed skill with a lock entry recording its source repo
@@ -86,11 +68,7 @@ final class RegistryBrowserViewModelTests: XCTestCase {
         XCTAssertTrue(vm.isInstalled(registrySkill), "Should be installed when skillId and source both match")
     }
 
-    /// Test: isInstalled returns false when skillId matches but source differs.
-    ///
-    /// This is the bug fix scenario — user installed "ui-ux-pro-max" from "alice/skills",
-    /// but the registry also shows a DIFFERENT "ui-ux-pro-max" from "bob/other-skills".
-    /// Before the fix, both would show as "Installed" (wrong). After the fix, only the matching source shows it.
+    /// 验证：当 `skillId` 相同但 `source` 不同时，`isInstalled` 返回 `false`。
     func testIsInstalledReturnsFalseWhenSourceDiffers() {
         let skillManager = SkillManager()
         // Locally installed from "alice/skills"
@@ -104,11 +82,7 @@ final class RegistryBrowserViewModelTests: XCTestCase {
         XCTAssertFalse(vm.isInstalled(registrySkill), "Should NOT be installed when source differs even if skillId matches")
     }
 
-    /// Test: isInstalled returns true for manually installed skills (no lock entry) via ID-only fallback.
-    ///
-    /// Skills installed manually (e.g., by copying files) don't have a lock entry,
-    /// so there's no source to compare. In this case, we fall back to skillId-only matching
-    /// for backward compatibility — the skill directory name is enough.
+    /// 验证：对于没有 `lockEntry` 的手动安装 skill，`isInstalled` 会回退到仅按 `skillId` 匹配。
     func testIsInstalledFallbackForSkillWithoutLockEntry() {
         let skillManager = SkillManager()
         // Manually installed skill — no lock entry, so no source info
@@ -122,10 +96,7 @@ final class RegistryBrowserViewModelTests: XCTestCase {
         XCTAssertTrue(vm.isInstalled(registrySkill), "Should be installed via ID-only fallback when no lock entry exists")
     }
 
-    /// Test: isInstalled returns false for a completely uninstalled skill.
-    ///
-    /// Verifies baseline behavior — a skill that isn't installed locally at all
-    /// should never show as "Installed" regardless of its registry source.
+    /// 验证：对完全未安装的 skill，`isInstalled` 应返回 `false`。
     func testIsInstalledReturnsFalseForUninstalledSkill() {
         let skillManager = SkillManager()
         // Install a different skill
