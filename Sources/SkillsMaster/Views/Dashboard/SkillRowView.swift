@@ -33,7 +33,7 @@ struct SkillRowView: View {
                         AgentIconView(agentType: installation.agentType, size: 12)
                             // Reduce opacity for inherited installation icons to visually distinguish from direct installations
                             .opacity(installation.isInherited ? 0.4 : 1.0)
-                            // Hover tooltip: inherited installation shows "Copilot CLI (via ~/.claude/skills)"
+                            // Hover tooltip: inherited installation shows "GitHub Copilot (via ~/.claude/skills)"
                             .help(installation.isInherited
                                 ? "\(installation.agentType.displayName) (via \(installation.parentDirectoryDisplayPath))"
                                 : installation.agentType.displayName)

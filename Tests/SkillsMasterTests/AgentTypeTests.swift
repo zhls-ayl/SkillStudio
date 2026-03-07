@@ -94,11 +94,11 @@ final class AgentTypeTests: XCTestCase {
         XCTAssertEqual(additionalDirs[0].sourceAgent, .geminiCLI)
     }
 
-    // MARK: - Kiro Agent Properties
+    // MARK: - Kiro CLI Agent Properties
 
     /// Verify all computed properties of the Kiro CLI agent type
     func testKiroProperties() {
-        let agent = AgentType.kiro
+        let agent = AgentType.kiroCLI
 
         // rawValue is used as the Codable key in lock file JSON
         XCTAssertEqual(agent.rawValue, "kiro-cli")
@@ -110,7 +110,7 @@ final class AgentTypeTests: XCTestCase {
         XCTAssertEqual(agent.iconResourceName, "kiro")
         XCTAssertEqual(agent.brandColor, "violet")
 
-        // Kiro does not read other agents' directories
+        // Kiro CLI does not read other agents' directories
         XCTAssertTrue(agent.additionalReadableSkillsDirectories.isEmpty)
     }
 
@@ -198,12 +198,12 @@ final class AgentTypeTests: XCTestCase {
     /// Verify the total number of supported agents
     /// This test catches accidental removal of agent cases
     func testAllCasesCount() {
-        // 11 agents: claudeCode, codex, geminiCLI, copilotCLI, openCode, antigravity, cursor, kiro, codeBuddy, openClaw, trae
+        // 11 agents: claudeCode, codex, geminiCLI, githubCopilot, openCode, antigravity, cursor, kiroCLI, codeBuddy, openClaw, trae
         XCTAssertEqual(AgentType.allCases.count, 11)
     }
 
     func testGitHubCopilotRawValue() {
-        let agent = AgentType.copilotCLI
+        let agent = AgentType.githubCopilot
 
         XCTAssertEqual(agent.rawValue, "github-copilot")
         XCTAssertEqual(agent.displayName, "GitHub Copilot")
@@ -212,10 +212,10 @@ final class AgentTypeTests: XCTestCase {
     }
 
     func testDecodesLegacyAgentTypeAliases() throws {
-        XCTAssertEqual(try JSONDecoder().decode(AgentType.self, from: Data("\"copilot-cli\"".utf8)), .copilotCLI)
-        XCTAssertEqual(try JSONDecoder().decode(AgentType.self, from: Data("\"github-copilot\"".utf8)), .copilotCLI)
-        XCTAssertEqual(try JSONDecoder().decode(AgentType.self, from: Data("\"kiro\"".utf8)), .kiro)
-        XCTAssertEqual(try JSONDecoder().decode(AgentType.self, from: Data("\"kiro-cli\"".utf8)), .kiro)
+        XCTAssertEqual(try JSONDecoder().decode(AgentType.self, from: Data("\"copilot-cli\"".utf8)), .githubCopilot)
+        XCTAssertEqual(try JSONDecoder().decode(AgentType.self, from: Data("\"github-copilot\"".utf8)), .githubCopilot)
+        XCTAssertEqual(try JSONDecoder().decode(AgentType.self, from: Data("\"kiro\"".utf8)), .kiroCLI)
+        XCTAssertEqual(try JSONDecoder().decode(AgentType.self, from: Data("\"kiro-cli\"".utf8)), .kiroCLI)
     }
 
     /// Verify bundled SVG icon resource mapping for all agent types
@@ -224,11 +224,11 @@ final class AgentTypeTests: XCTestCase {
             .claudeCode: "claude",
             .codex: "codex",
             .geminiCLI: "gemini",
-            .copilotCLI: "githubcopilot",
+            .githubCopilot: "githubcopilot",
             .openCode: "opencode",
             .antigravity: "antigravity",
             .cursor: "cursor",
-            .kiro: "kiro",
+            .kiroCLI: "kiro",
             .codeBuddy: "codebuddy",
             .openClaw: "openclaw",
             .trae: "trae"

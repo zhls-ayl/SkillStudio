@@ -2,7 +2,7 @@
 
 > **用途**：当某个 AI Agent 能读取其他 Agent 的 skills 目录时，如何在 SkillsMaster 中正确实现"继承安装"功能。
 >
-> **参考案例**：Copilot CLI 支持读取 `~/.claude/skills/`（[GitHub 官方文档](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills)）
+> **参考案例**：GitHub Copilot 支持读取 `~/.claude/skills/`（[GitHub 官方文档](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills)）
 
 ---
 
@@ -26,16 +26,16 @@
 
 ```
 Claude Code  → ~/.claude/skills/
-Copilot CLI  → ~/.copilot/skills/
+GitHub Copilot  → ~/.copilot/skills/
 Gemini CLI   → ~/.gemini/skills/
 Antigravity  → ~/.gemini/antigravity/skills/
 Cursor       → ~/.cursor/skills/
-Kiro         → ~/.kiro/skills/
+Kiro CLI     → ~/.kiro/skills/
 CodeBuddy    → ~/.codebuddy/skills/
 OpenClaw     → ~/.openclaw/skills/
 ```
 
-但某些 Agent 会额外读取其他 Agent 的目录。例如 Copilot CLI 同时读取 `~/.copilot/skills/` 和 `~/.claude/skills/`，Cursor 同时读取 `~/.cursor/skills/` 和 `~/.claude/skills/`。
+但某些 Agent 会额外读取其他 Agent 的目录。例如 GitHub Copilot 同时读取 `~/.copilot/skills/` 和 `~/.claude/skills/`，Cursor 同时读取 `~/.cursor/skills/` 和 `~/.claude/skills/`。
 
 ### 继承安装的定义
 
@@ -59,7 +59,7 @@ OpenClaw     → ~/.openclaw/skills/
 
 ```
 1. 哪个 Agent 能额外读取哪个目录？
-   示例：Copilot CLI 能读取 ~/.claude/skills/
+   示例：GitHub Copilot 能读取 ~/.claude/skills/
 
 2. 官方文档链接或来源？
    示例：https://docs.github.com/en/copilot/concepts/agents/about-agent-skills
@@ -105,7 +105,7 @@ OpenClaw     → ~/.openclaw/skills/
 ```swift
 var additionalReadableSkillsDirectories: [(url: URL, sourceAgent: AgentType)] {
     switch self {
-    case .copilotCLI:
+    case .githubCopilot:
         return [(AgentType.claudeCode.skillsDirectoryURL, .claudeCode)]
     case .geminiCLI:  // ← 新增
         return [(AgentType.claudeCode.skillsDirectoryURL, .claudeCode)]
@@ -128,7 +128,7 @@ enum AgentType: String, CaseIterable, Identifiable, Codable {
     case claudeCode = "claude-code"
     case codex = "codex"
     case geminiCLI = "gemini-cli"
-    case copilotCLI = "github-copilot"
+    case githubCopilot = "github-copilot"
     case openCode = "opencode"
     case aider = "aider"          // ← 新增
     // ...
@@ -225,7 +225,7 @@ EOF
 ./run
 
 # 3. 验证以下内容：
-#    - Sidebar: Copilot CLI 的 badge 包含继承 skill
+#    - Sidebar: GitHub Copilot 的 badge 包含继承 skill
 #    - Dashboard: 该 skill 行中 Copilot 图标显示为低透明度
 #    - Detail: Copilot Toggle 显示为 ON + disabled + "via Claude Code"
 #    - 点击 Copilot Toggle 无反应（不会报错）
@@ -245,11 +245,11 @@ rm -rf ~/.copilot/skills/test-inherited/
 
 ## 7. Copilot 实现全记录
 
-以下是 Copilot CLI 跨目录读取功能的完整实现记录，作为未来开发的参考。
+以下是 GitHub Copilot 跨目录读取功能的完整实现记录，作为未来开发的参考。
 
 ### 背景
 
-Copilot CLI 会同时读取 `~/.copilot/skills/` 和 `~/.claude/skills/`。但 SkillsMaster 此前只检查 Agent 自身目录，导致仅存在于 `~/.claude/skills/` 的 skill 不会显示为 Copilot 可用。
+GitHub Copilot 会同时读取 `~/.copilot/skills/` 和 `~/.claude/skills/`。但 SkillsMaster 此前只检查 Agent 自身目录，导致仅存在于 `~/.claude/skills/` 的 skill 不会显示为 Copilot 可用。
 
 ### 修改文件与关键代码
 
@@ -280,7 +280,7 @@ struct SkillInstallation: Identifiable, Hashable {
 ```swift
 var additionalReadableSkillsDirectories: [(url: URL, sourceAgent: AgentType)] {
     switch self {
-    case .copilotCLI:
+    case .githubCopilot:
         return [(AgentType.claudeCode.skillsDirectoryURL, .claudeCode)]
     default:
         return []

@@ -13,11 +13,11 @@ enum Constants {
             case .claudeCode: Color(red: 0.91, green: 0.45, blue: 0.29)   // Coral #E8734A
             case .codex:      Color(red: 0.20, green: 0.78, blue: 0.35)   // Green
             case .geminiCLI:  Color(red: 0.26, green: 0.52, blue: 0.96)   // Blue
-            case .copilotCLI: Color(red: 0.58, green: 0.34, blue: 0.92)   // Purple
+            case .githubCopilot: Color(red: 0.58, green: 0.34, blue: 0.92)   // Purple
             case .openCode:   Color(red: 0.0, green: 0.71, blue: 0.67)    // Teal #00B5AB
             case .antigravity: Color(red: 0.36, green: 0.42, blue: 0.75)  // Indigo #5C6BC0
             case .cursor:      Color(red: 0.06, green: 0.73, blue: 0.89)  // Cyan #10BAE3
-            case .kiro:        Color(red: 0.55, green: 0.24, blue: 0.85)  // Violet
+            case .kiroCLI:        Color(red: 0.55, green: 0.24, blue: 0.85)  // Violet
             case .codeBuddy:   Color(red: 0.91, green: 0.30, blue: 0.60)  // Pink #E84D99
             case .openClaw:    Color(red: 0.85, green: 0.18, blue: 0.15)  // Red #D92E26 (lobster/crayfish theme)
             case .trae:        Color(red: 0.20, green: 0.94, blue: 0.55)  // Bright Green #32F08C

@@ -34,11 +34,11 @@ private enum AgentIconLoader {
 
     static func image(for agentType: AgentType) -> NSImage? {
         // Some third-party SVG exports are not fully compatible with CoreSVG.
-        // In practice, Kiro's upstream logo file triggers parser warnings
+        // In practice, Kiro CLI's upstream logo file triggers parser warnings
         // ("invalid rx/ry", malformed arc command counts) on each decode.
         // We intentionally skip loading that SVG and use the SF Symbol fallback
         // from AgentType.iconName to keep runtime logs clean and deterministic.
-        if agentType == .kiro {
+        if agentType == .kiroCLI {
             failed.insert(agentType)
             return nil
         }

@@ -6,11 +6,11 @@ enum AgentType: String, CaseIterable, Identifiable, Codable {
     case claudeCode = "claude-code"
     case codex = "codex"
     case geminiCLI = "gemini-cli"
-    case copilotCLI = "github-copilot"
+    case githubCopilot = "github-copilot"
     case openCode = "opencode"       // OpenCode: Open source AI programming CLI tool
     case antigravity = "antigravity"   // Antigravity: Google's AI coding agent (https://antigravity.google)
     case cursor = "cursor"               // Cursor: AI-powered code editor (https://cursor.com)
-    case kiro = "kiro-cli"                 // Kiro CLI: AWS AI IDE built on Code OSS (https://kiro.dev)
+    case kiroCLI = "kiro-cli"                 // Kiro CLI: AWS AI IDE built on Code OSS (https://kiro.dev)
     case codeBuddy = "codebuddy"           // CodeBuddy: Tencent Cloud AI coding assistant (https://www.codebuddy.ai)
     case openClaw = "openclaw"             // OpenClaw: AI coding assistant with ClawHub registry (https://openclaw.ai)
     case trae = "trae"                       // Trae: ByteDance's AI IDE (https://trae.ai)
@@ -23,11 +23,11 @@ enum AgentType: String, CaseIterable, Identifiable, Codable {
         case .claudeCode: "Claude Code"
         case .codex: "Codex"
         case .geminiCLI: "Gemini CLI"
-        case .copilotCLI: "GitHub Copilot"
+        case .githubCopilot: "GitHub Copilot"
         case .openCode: "OpenCode"
         case .antigravity: "Antigravity"
         case .cursor: "Cursor"
-        case .kiro: "Kiro CLI"
+        case .kiroCLI: "Kiro CLI"
         case .codeBuddy: "CodeBuddy"
         case .openClaw: "OpenClaw"
         case .trae: "Trae"
@@ -40,9 +40,9 @@ enum AgentType: String, CaseIterable, Identifiable, Codable {
 
         switch rawValue {
         case "copilot-cli", "github-copilot":
-            self = .copilotCLI
+            self = .githubCopilot
         case "kiro", "kiro-cli":
-            self = .kiro
+            self = .kiroCLI
         default:
             guard let value = Self(rawValue: rawValue) else {
                 throw DecodingError.dataCorruptedError(
@@ -66,11 +66,11 @@ enum AgentType: String, CaseIterable, Identifiable, Codable {
         case .claudeCode: "coral"     // #E8734A
         case .codex: "green"
         case .geminiCLI: "blue"
-        case .copilotCLI: "purple"
+        case .githubCopilot: "purple"
         case .openCode: "teal"
         case .antigravity: "indigo"
         case .cursor: "cyan"
-        case .kiro: "violet"
+        case .kiroCLI: "violet"
         case .codeBuddy: "pink"
         case .openClaw: "red"
         case .trae: "brightGreen"
@@ -85,11 +85,11 @@ enum AgentType: String, CaseIterable, Identifiable, Codable {
         case .claudeCode: "brain.head.profile"
         case .codex: "terminal"
         case .geminiCLI: "sparkles"
-        case .copilotCLI: "airplane"
+        case .githubCopilot: "airplane"
         case .openCode: "chevron.left.forwardslash.chevron.right"  // </> Code symbol, fitting OpenCode's programming theme
         case .antigravity: "arrow.up.circle"  // Upward motion symbolizing anti-gravity
         case .cursor: "cursorarrow.rays"        // Cursor arrow icon matching the Cursor IDE brand
-        case .kiro: "k.circle"                   // Letter K icon for Kiro
+        case .kiroCLI: "k.circle"                   // Letter K icon for Kiro CLI
         case .codeBuddy: "c.circle"               // Letter C icon for CodeBuddy
         case .openClaw: "o.circle"               // Letter O icon for OpenClaw
         case .trae: "t.circle"                     // Letter T icon for Trae
@@ -102,11 +102,11 @@ enum AgentType: String, CaseIterable, Identifiable, Codable {
         case .claudeCode: "claude"
         case .codex: "codex"
         case .geminiCLI: "gemini"
-        case .copilotCLI: "githubcopilot"
+        case .githubCopilot: "githubcopilot"
         case .openCode: "opencode"
         case .antigravity: "antigravity"
         case .cursor: "cursor"
-        case .kiro: "kiro"
+        case .kiroCLI: "kiro"
         case .codeBuddy: "codebuddy"
         case .openClaw: "openclaw"
         case .trae: "trae"
@@ -120,11 +120,11 @@ enum AgentType: String, CaseIterable, Identifiable, Codable {
         case .claudeCode: "~/.claude/skills"
         case .codex: "~/.codex/skills"        // Codex-specific skills directory (also reads ~/.agents/skills/)
         case .geminiCLI: "~/.gemini/skills"
-        case .copilotCLI: "~/.copilot/skills"
+        case .githubCopilot: "~/.copilot/skills"
         case .openCode: "~/.config/opencode/skills"  // OpenCode uses XDG-style configuration path
         case .antigravity: "~/.gemini/antigravity/skills"  // Antigravity stores skills under Gemini's config directory
         case .cursor: "~/.cursor/skills"                    // Cursor IDE skills directory
-        case .kiro: "~/.kiro/skills"                       // Kiro IDE skills directory
+        case .kiroCLI: "~/.kiro/skills"                       // Kiro CLI skills directory
         case .codeBuddy: "~/.codebuddy/skills"             // CodeBuddy AI assistant skills directory
         case .openClaw: "~/.openclaw/skills"               // OpenClaw AI assistant skills directory
         case .trae: "~/.trae/skills"                         // Trae AI IDE skills directory
@@ -143,11 +143,11 @@ enum AgentType: String, CaseIterable, Identifiable, Codable {
         case .claudeCode: "~/.claude"
         case .codex: "~/.codex"                // Codex configuration directory
         case .geminiCLI: "~/.gemini"
-        case .copilotCLI: "~/.copilot"
+        case .githubCopilot: "~/.copilot"
         case .openCode: "~/.config/opencode"
         case .antigravity: "~/.gemini/antigravity"
         case .cursor: "~/.cursor"
-        case .kiro: "~/.kiro"
+        case .kiroCLI: "~/.kiro"
         case .codeBuddy: "~/.codebuddy"
         case .openClaw: "~/.openclaw"
         case .trae: "~/.trae"
@@ -160,11 +160,11 @@ enum AgentType: String, CaseIterable, Identifiable, Codable {
         case .claudeCode: "claude"
         case .codex: "codex"
         case .geminiCLI: "gemini"
-        case .copilotCLI: "gh"
+        case .githubCopilot: "gh"
         case .openCode: "opencode"
         case .antigravity: "antigravity"
         case .cursor: "cursor"
-        case .kiro: "kiro"
+        case .kiroCLI: "kiro"
         case .codeBuddy: "codebuddy"
         case .openClaw: "openclaw"
         case .trae: "trae"
@@ -209,10 +209,10 @@ enum AgentType: String, CaseIterable, Identifiable, Codable {
             // Gemini CLI reads ~/.agents/skills/ as a cross-agent compatibility alias
             // See: https://geminicli.com/docs/cli/skills/
             return [(Self.legacySharedSkillsDirectoryURL, .geminiCLI)]
-        case .copilotCLI:
-            // Copilot CLI can also read Claude Code's skills directory
+        case .githubCopilot:
+            // GitHub Copilot can also read Claude Code's skills directory
             // See: https://docs.github.com/en/copilot/concepts/agents/about-agent-skills
-            return [(AgentType.claudeCode.skillsDirectoryURL, .copilotCLI)]
+            return [(AgentType.claudeCode.skillsDirectoryURL, .githubCopilot)]
         case .openCode:
             // OpenCode can also read Claude Code's and the legacy shared skills directories
             // See: https://opencode.ai/docs/skills/#place-files

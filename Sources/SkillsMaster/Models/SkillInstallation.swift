@@ -6,7 +6,7 @@ import Foundation
 /// Two types of installation:
 /// - Direct installation (isInherited == false): skill exists in the Agent's own skills directory
 /// - Inherited installation (isInherited == true): skill exists in another Agent's directory, but this Agent can also read it
-///   e.g. Copilot CLI can read ~/.claude/skills/, so Claude Code's skills are also available to Copilot
+///   e.g. GitHub Copilot can read ~/.claude/skills/, so Claude Code's skills are also available to GitHub Copilot
 struct SkillInstallation: Identifiable, Hashable {
     let agentType: AgentType
     let path: URL              // Path of the skill in this Agent's skills directory
