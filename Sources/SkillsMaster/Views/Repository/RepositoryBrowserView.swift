@@ -133,7 +133,7 @@ struct RepositoryBrowserView: View {
     private var loadingView: some View {
         VStack(spacing: 8) {
             ProgressView()
-            Text("Scanning repository…")
+            Text(viewModel.loadingMessage)
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

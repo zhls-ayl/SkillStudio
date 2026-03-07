@@ -25,6 +25,7 @@ SkillsMaster 是一个基于 SwiftUI 的 macOS 应用，用于管理多代理 Sk
 - 自定义仓库克隆目录：`~/.skillsmaster/repos`
 - 自定义仓库配置：`~/.skillsmaster/.skillsmaster-repos.json`
 - 提交哈希缓存：`~/.skillsmaster/.skillsmaster-cache.json`（迁移后私有缓存）
+- 自定义仓库扫描缓存：`~/.skillsmaster/.repository-scan-cache.json`（按仓库 HEAD 复用轻量索引）
 
 其中需要特别注意：
 - `~/.skillsmaster/skills` 是 SkillsMaster 自己维护的 canonical 目录
@@ -46,7 +47,7 @@ SkillsMaster 是一个基于 SwiftUI 的 macOS 应用，用于管理多代理 Sk
 当前安装来源分为三类：
 - 注册表技能：通过 `SkillRegistryService` 获取索引，再进入安装流程
 - 远程仓库安装：通过 `GitService` 克隆 / 扫描 / 拷贝到 canonical 目录
-- 自定义仓库：由 `RepositoryManager` 管理配置与同步，由 `RepositoryBrowserViewModel` 驱动安装
+- 自定义仓库：由 `RepositoryManager` 管理配置、同步与轻量索引缓存，由 `RepositoryBrowserViewModel` 驱动浏览与安装；列表使用缓存索引，详情页按需加载完整 `SKILL.md`
 
 统一安装后都会落到 canonical 目录，再由 `SymlinkManager` 处理代理侧链接，并由 `LockFileManager` 更新 lock file。
 

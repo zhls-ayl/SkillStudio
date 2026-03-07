@@ -55,22 +55,48 @@ enum SkillMDParser {
         return try parse(content: content)
     }
 
+    /// 仅解析 `SKILL.md` 的 frontmatter metadata。
+    ///
+    /// 用于 repository 列表索引场景，避免在全量扫描时保留每个 skill 的 markdown 正文。
+    static func parseMetadata(fileURL url: URL) throws -> SkillMetadata {
+        guard FileManager.default.fileExists(atPath: url.path) else {
+            throw ParseError.fileNotFound(url)
+        }
+
+        let data = try Data(contentsOf: url)
+        guard let content = String(data: data, encoding: .utf8) else {
+            throw ParseError.invalidEncoding
+        }
+
+        return try parseMetadata(content: content)
+    }
+
     /// 从字符串内容解析 `SKILL.md`。
     /// 该方法也会在单元测试中直接使用。
     static func parse(content: String) throws -> ParseResult {
         // 提取 frontmatter 与 body。
         let (yamlString, body) = try extractFrontmatter(from: content)
 
+        let metadata = try decodeMetadata(from: yamlString)
+
+        return ParseResult(metadata: metadata, markdownBody: body.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    /// 从字符串内容中仅解析 metadata，不保留 Markdown 正文。
+    static func parseMetadata(content: String) throws -> SkillMetadata {
+        let (yamlString, _) = try extractFrontmatter(from: content)
+        return try decodeMetadata(from: yamlString)
+    }
+
+    private static func decodeMetadata(from yamlString: String) throws -> SkillMetadata {
+
         // 使用 `Yams` 把 YAML 字符串解析成 `SkillMetadata`。
         let decoder = YAMLDecoder()
-        let metadata: SkillMetadata
         do {
-            metadata = try decoder.decode(SkillMetadata.self, from: yamlString)
+            return try decoder.decode(SkillMetadata.self, from: yamlString)
         } catch {
             throw ParseError.invalidYAML(error.localizedDescription)
         }
-
-        return ParseResult(metadata: metadata, markdownBody: body.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     /// 从文本中提取 YAML frontmatter 与 Markdown body。

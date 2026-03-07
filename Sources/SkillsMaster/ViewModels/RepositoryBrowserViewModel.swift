@@ -10,6 +10,7 @@ import Foundation
 /// - Track search text for local filtering (no network request needed — all data is local)
 /// - Trigger installation of a selected skill from already-synced local repository data
 /// - Expose sync status so the UI can show a spinner while a git pull is in progress
+/// - Lazy-load full SKILL.md content only for the selected skill
 ///
 /// @MainActor @Observable follows the same pattern as RegistryBrowserViewModel.
 @MainActor
@@ -29,7 +30,6 @@ final class RepositoryBrowserViewModel {
     var displayedSkills: [GitService.DiscoveredSkill] {
         let text = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return allSkills }
-        // Case-insensitive substring match on skill name or description
         return allSkills.filter { skill in
             skill.metadata.name.localizedCaseInsensitiveContains(text)
                 || skill.metadata.description.localizedCaseInsensitiveContains(text)
@@ -42,11 +42,27 @@ final class RepositoryBrowserViewModel {
     /// Whether the initial skill scan is running (shows ProgressView in the list)
     var isLoading = false
 
+    /// Human-readable loading message shown when the repository view is waiting.
+    var loadingMessage: String {
+        if isSyncing && !repository.isCloned {
+            return "Synchronizing repository…"
+        }
+        if isSyncing {
+            return "Refreshing repository index…"
+        }
+        return "Indexing repository…"
+    }
+
     /// Error message (nil = no error)
     var errorMessage: String?
 
     /// Currently selected skill (drives the detail pane in ContentView)
-    var selectedSkillID: String?
+    var selectedSkillID: String? {
+        didSet {
+            guard oldValue != selectedSkillID else { return }
+            resetSelectedSkillContent()
+        }
+    }
 
     /// Selected skill object resolved from `selectedSkillID`.
     ///
@@ -55,6 +71,15 @@ final class RepositoryBrowserViewModel {
         guard let id = selectedSkillID else { return nil }
         return allSkills.first { $0.id == id }
     }
+
+    /// Lazily loaded full content for the selected skill.
+    var selectedSkillContent: SkillMDParser.ParseResult?
+
+    /// Whether the detail view is loading the selected skill's full content.
+    var isLoadingSelectedSkillContent = false
+
+    /// Error message for selected skill content loading.
+    var selectedSkillContentError: String?
 
     /// Install sheet ViewModel — non-nil triggers the install sheet.
     /// Same pattern as RegistryBrowserViewModel.installVM.
@@ -89,6 +114,8 @@ final class RepositoryBrowserViewModel {
     // MARK: - Private
 
     private let skillManager: SkillManager
+    private var contentCache: [String: SkillMDParser.ParseResult] = [:]
+    private var loadingContentSkillID: String?
 
     // MARK: - Init
 
@@ -126,25 +153,64 @@ final class RepositoryBrowserViewModel {
     ///   generic "not yet synced" message.
     func loadSkills(overrideError: String? = nil) async {
         isLoading = true
-        // Only clear errorMessage here if we have no override; the override is shown after this call.
         if overrideError == nil { errorMessage = nil }
 
-        // Delegate to RepositoryManager which handles actor isolation correctly.
-        // The `await` suspends this @MainActor task while RepositoryManager does file I/O,
-        // then resumes on the main actor to publish the new snapshot.
         let skills = await skillManager.repositoryManager.scanSkills(in: repository)
 
+        contentCache.removeAll()
         allSkills = skills
-        // Keep selectedSkillID unchanged even if the item is no longer present.
-        // This avoids mutating List(selection:) during data-source refresh.
-        // The detail pane already derives selectedSkill from allSkills and naturally falls back to nil.
         isLoading = false
 
+        if let selectedSkillID,
+           let refreshedSelectedSkill = allSkills.first(where: { $0.id == selectedSkillID }) {
+            contentCache.removeValue(forKey: selectedSkillID)
+            await loadContent(for: refreshedSelectedSkill, force: true)
+        } else if selectedSkillID != nil {
+            resetSelectedSkillContent()
+        }
+
         if let override = overrideError {
-            // Show the actual git error (e.g., SSH auth failure, network error)
             errorMessage = override
         } else if !repository.isCloned && allSkills.isEmpty && !isSyncing {
             errorMessage = "Repository 尚未同步，请先点击 Sync 按钮完成 clone。"
+        }
+    }
+
+    /// Load the full `SKILL.md` content for the selected skill on demand.
+    func loadContent(for skill: GitService.DiscoveredSkill, force: Bool = false) async {
+        if !force, let cached = contentCache[skill.id] {
+            selectedSkillContent = cached
+            selectedSkillContentError = nil
+            isLoadingSelectedSkillContent = false
+            return
+        }
+        if loadingContentSkillID == skill.id {
+            return
+        }
+
+        selectedSkillContent = nil
+        selectedSkillContentError = nil
+        isLoadingSelectedSkillContent = true
+        loadingContentSkillID = skill.id
+        let targetSkillID = skill.id
+
+        do {
+            let content = try await skillManager.repositoryManager.loadSkillContent(
+                in: repository,
+                skillMDPath: skill.skillMDPath
+            )
+
+            guard selectedSkillID == targetSkillID else { return }
+            contentCache[targetSkillID] = content
+            selectedSkillContent = content
+        } catch {
+            guard selectedSkillID == targetSkillID else { return }
+            selectedSkillContentError = error.localizedDescription
+        }
+
+        if selectedSkillID == targetSkillID {
+            isLoadingSelectedSkillContent = false
+            loadingContentSkillID = nil
         }
     }
 
@@ -208,19 +274,22 @@ final class RepositoryBrowserViewModel {
 
         switch newStatus {
         case .idle:
-            // No-op state.
             break
         case .syncing:
-            // Show loading state while git clone/pull is in progress.
             isLoading = true
         case .success:
-            // Reload from local clone after successful sync.
             await loadSkills()
         case .error(let gitError):
-            // Keep existing list data and surface the sync error.
             isLoading = false
             errorMessage = "同步失败：\(gitError)"
         }
+    }
+
+    private func resetSelectedSkillContent() {
+        selectedSkillContent = nil
+        selectedSkillContentError = nil
+        isLoadingSelectedSkillContent = false
+        loadingContentSkillID = nil
     }
 
     private func sourceIdentifier() -> String {

@@ -3,15 +3,27 @@ import SwiftUI
 /// RepositorySkillDetailView renders detail content for a selected skill from a custom repository.
 ///
 /// Shown in the right pane of NavigationSplitView when user selects a row in RepositoryBrowserView.
-/// Content is fully local (from scanned SKILL.md), no additional network request is needed.
+/// Full SKILL.md content is loaded lazily from the local clone only for the selected item.
 struct RepositorySkillDetailView: View {
 
     let skill: GitService.DiscoveredSkill
     let repository: SkillRepository
+    let content: SkillMDParser.ParseResult?
+    let isLoadingContent: Bool
+    let contentError: String?
     let isInstalled: Bool
     let canInstall: Bool
     let installDisabledReason: String?
     let onInstall: () -> Void
+    let onLoadContent: () async -> Void
+
+    private var displayMetadata: SkillMetadata {
+        content?.metadata ?? skill.metadata
+    }
+
+    private var displayName: String {
+        displayMetadata.name.isEmpty ? skill.id : displayMetadata.name
+    }
 
     var body: some View {
         ScrollView {
@@ -32,7 +44,10 @@ struct RepositorySkillDetailView: View {
             }
             .padding()
         }
-        .navigationTitle(skill.metadata.name.isEmpty ? skill.id : skill.metadata.name)
+        .navigationTitle(displayName)
+        .task(id: skill.id) {
+            await onLoadContent()
+        }
     }
 
     // MARK: - Sections
@@ -40,7 +55,7 @@ struct RepositorySkillDetailView: View {
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Text(skill.metadata.name.isEmpty ? skill.id : skill.metadata.name)
+                Text(displayName)
                     .font(.title)
                     .fontWeight(.bold)
                     .textSelection(.enabled)
@@ -64,8 +79,8 @@ struct RepositorySkillDetailView: View {
             }
             .font(.subheadline)
 
-            if !skill.metadata.description.isEmpty {
-                Text(skill.metadata.description)
+            if !displayMetadata.description.isEmpty {
+                Text(displayMetadata.description)
                     .font(.body)
                     .foregroundStyle(.secondary)
             }
@@ -88,19 +103,19 @@ struct RepositorySkillDetailView: View {
                         .font(.system(.body, design: .monospaced))
                         .textSelection(.enabled)
                 }
-                if let author = skill.metadata.author {
+                if let author = displayMetadata.author {
                     GridRow {
                         Text("Author").foregroundStyle(.secondary)
                         Text(author).textSelection(.enabled)
                     }
                 }
-                if let version = skill.metadata.version {
+                if let version = displayMetadata.version {
                     GridRow {
                         Text("Version").foregroundStyle(.secondary)
                         Text(version).textSelection(.enabled)
                     }
                 }
-                if let license = skill.metadata.license {
+                if let license = displayMetadata.license {
                     GridRow {
                         Text("License").foregroundStyle(.secondary)
                         Text(license).textSelection(.enabled)
@@ -133,12 +148,29 @@ struct RepositorySkillDetailView: View {
             Text("Skill Content")
                 .font(.headline)
 
-            if skill.markdownBody.isEmpty {
+            if isLoadingContent {
+                HStack(spacing: 8) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Loading SKILL.md…")
+                        .foregroundStyle(.secondary)
+                }
+            } else if let contentError {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(contentError)
+                        .foregroundStyle(.secondary)
+                    Button("重试加载") {
+                        Task { await onLoadContent() }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+            } else if let markdownBody = content?.markdownBody, !markdownBody.isEmpty {
+                MarkdownContentView(markdownText: markdownBody)
+            } else {
                 Text("No markdown content available in this SKILL.md.")
                     .foregroundStyle(.tertiary)
                     .italic()
-            } else {
-                MarkdownContentView(markdownText: skill.markdownBody)
             }
         }
     }

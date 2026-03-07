@@ -56,6 +56,9 @@ actor RepositoryManager {
     /// 供 clone / pull 复用的 `GitService` 实例。
     private let gitService = GitService()
 
+    /// custom repository 的轻量扫描索引缓存。
+    private let repositoryScanCache = RepositoryScanCache()
+
     // MARK: - Config File Path
 
     /// 展开 `~` 后得到的配置文件绝对路径。
@@ -102,6 +105,7 @@ actor RepositoryManager {
             if let key = repo.credentialKey {
                 RepositoryCredentialStore.deleteToken(for: key)
             }
+            try? await repositoryScanCache.remove(repoID: repo.id)
         }
         await saveToDisk()
     }
@@ -172,22 +176,40 @@ actor RepositoryManager {
 
     /// Scan a cloned repository for available Skills.
     ///
-    /// Reuses `GitService.scanSkillsInRepo` which recursively walks the repo
-    /// directory and parses all SKILL.md files it finds.
-    /// Hidden-path scanning follows each repository's `scanHiddenPaths` setting.
-    ///
-    /// Marked `async` because `gitService.scanSkillsInRepo` is an actor-isolated method —
-    /// calling it from outside the `GitService` actor requires `await` (cross-actor async hop).
+    /// 优先按仓库 `HEAD` 命中持久化缓存；只有 commit 变化或缓存缺失时，
+    /// 才重新递归扫描并更新轻量索引。
     ///
     /// - Parameter repo: The repository to scan (must be cloned locally)
     /// - Returns: Array of discovered skills (empty if repo is not cloned)
     func scanSkills(in repo: SkillRepository) async -> [GitService.DiscoveredSkill] {
         guard repo.isCloned else { return [] }
         let repoDir = URL(fileURLWithPath: repo.localPath)
-        return await gitService.scanSkillsInRepo(
+
+        let headCommit = try? await gitService.getCommitHash(in: repoDir)
+        if let headCommit,
+           let cached = await repositoryScanCache.getSkills(for: repo, headCommit: headCommit) {
+            return cached
+        }
+
+        let skills = await gitService.scanSkillsInRepo(
             repoDir: repoDir,
             includeHiddenPaths: repo.scanHiddenPaths
         )
+
+        if let headCommit {
+            try? await repositoryScanCache.saveSkills(skills, for: repo, headCommit: headCommit)
+        }
+
+        return skills
+    }
+
+    /// Load the full content for a single discovered skill from the local clone.
+    func loadSkillContent(in repo: SkillRepository, skillMDPath: String) async throws -> SkillMDParser.ParseResult {
+        guard repo.isCloned else {
+            throw RepositoryError.cloneFailed("Repository is not synced locally")
+        }
+        let repoDir = URL(fileURLWithPath: repo.localPath)
+        return try await gitService.loadSkillContent(skillMDPath: skillMDPath, in: repoDir)
     }
 
     // MARK: - Private: Clone

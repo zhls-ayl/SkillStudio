@@ -225,6 +225,8 @@ actor GitService {
     /// - Returns: 扫描到的全部 skills
     ///
     /// 实现上会递归遍历 repository 目录树，查找 `SKILL.md`，并通过 `SkillMDParser` 解析 metadata。
+    ///
+    /// 默认只构建轻量索引，不在扫描阶段保留全部 Markdown 正文，避免大仓库浏览时占用过多时间和内存。
     func scanSkillsInRepo(repoDir: URL, includeHiddenPaths: Bool = true) -> [DiscoveredSkill] {
         let fm = FileManager.default
         var discovered: [DiscoveredSkill] = []
@@ -299,15 +301,15 @@ actor GitService {
                 ? "SKILL.md"
                 : "\(folderPath)/SKILL.md"
 
-            // 用 `SkillMDParser` 解析 `SKILL.md` 内容。
+            // 列表索引阶段只解析 metadata，正文在详情页按需加载。
             do {
-                let result = try SkillMDParser.parse(fileURL: skillMDURL)
+                let metadata = try SkillMDParser.parseMetadata(fileURL: skillMDURL)
                 discovered.append(DiscoveredSkill(
                     id: skillName,
                     folderPath: folderPath,
                     skillMDPath: skillMDPath,
-                    metadata: result.metadata,
-                    markdownBody: result.markdownBody
+                    metadata: metadata,
+                    markdownBody: ""
                 ))
             } catch {
                 // 如果解析失败，就回退到目录名作为最小信息，不阻断整次扫描。
@@ -368,6 +370,12 @@ actor GitService {
 
     private func containsHiddenPathComponent(_ folderPath: String) -> Bool {
         folderPath.split(separator: "/").contains { $0.hasPrefix(".") }
+    }
+
+    /// 读取 repository 内单个 skill 的完整 `SKILL.md` 内容。
+    func loadSkillContent(skillMDPath: String, in repoDir: URL) throws -> SkillMDParser.ParseResult {
+        let fileURL = repoDir.appendingPathComponent(skillMDPath)
+        return try SkillMDParser.parse(fileURL: fileURL)
     }
 
     /// 清理临时目录。

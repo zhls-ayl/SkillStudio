@@ -51,6 +51,9 @@ enum Constants {
     /// Config file that stores the list of user-configured custom repositories
     static let skillReposConfigPath = "~/.skillsmaster/.skillsmaster-repos.json"
 
+    /// Cache file for custom repository lightweight scan indexes
+    static let repositoryScanCachePath = "~/.skillsmaster/.repository-scan-cache.json"
+
     /// UserDefaults key for app appearance preference.
     /// Stored as `AppThemeMode.rawValue` (`system` / `light` / `dark`).
     static let appThemeModeKey = "appThemeMode"

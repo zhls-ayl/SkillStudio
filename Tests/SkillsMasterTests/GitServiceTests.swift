@@ -139,6 +139,7 @@ final class GitServiceTests: XCTestCase {
         XCTAssertEqual(skill.id, "my-skill")
         XCTAssertEqual(skill.folderPath, ".claude/skills/my-skill")
         XCTAssertEqual(skill.skillMDPath, ".claude/skills/my-skill/SKILL.md")
+        XCTAssertEqual(skill.markdownBody, "")
     }
 
     /// 验证 `scanSkillsInRepo` 在扫描时会跳过 `.git` 目录。
@@ -189,6 +190,7 @@ final class GitServiceTests: XCTestCase {
         XCTAssertEqual(skills.count, 1, "Expected 1 skill (should skip .git), found \(skills.count)")
         let skill = try XCTUnwrap(skills.first)
         XCTAssertEqual(skill.id, "my-real-skill")
+        XCTAssertEqual(skill.markdownBody, "")
     }
 
     /// 验证当 `includeHiddenPaths` 关闭时，隐藏路径会被忽略。
@@ -283,4 +285,43 @@ final class GitServiceTests: XCTestCase {
         XCTAssertEqual(skill.id, "create-skills")
         XCTAssertEqual(skill.folderPath, "skills/create-skills")
     }
+    /// 验证 repository 列表索引阶段不会预加载 markdown body，正文按需读取。
+    func testLoadSkillContentReadsMarkdownBodyOnDemand() async throws {
+        let fm = FileManager.default
+        let repoDir = fm.temporaryDirectory.appendingPathComponent("SkillsMaster-test-\(UUID().uuidString)")
+        let skillDir = repoDir.appendingPathComponent("lazy-skill")
+        try fm.createDirectory(at: skillDir, withIntermediateDirectories: true)
+
+        let content = """
+        ---
+        name: lazy-skill
+        description: lazily loaded content
+        ---
+        # Lazy Skill
+        This markdown should only load on demand.
+        """
+        try content.write(
+            to: skillDir.appendingPathComponent("SKILL.md"),
+            atomically: true,
+            encoding: .utf8
+        )
+
+        defer { try? fm.removeItem(at: repoDir) }
+
+        let gitService = GitService()
+        let skills = await gitService.scanSkillsInRepo(repoDir: repoDir)
+        let skill = try XCTUnwrap(skills.first)
+        XCTAssertEqual(skill.markdownBody, "")
+
+        let parseResult = try await gitService.loadSkillContent(
+            skillMDPath: skill.skillMDPath,
+            in: repoDir
+        )
+        XCTAssertEqual(parseResult.metadata.name, "lazy-skill")
+        XCTAssertEqual(parseResult.markdownBody, """
+        # Lazy Skill
+        This markdown should only load on demand.
+        """.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
 }

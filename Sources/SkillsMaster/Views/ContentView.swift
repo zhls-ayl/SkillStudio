@@ -100,10 +100,14 @@ struct ContentView: View {
                     RepositorySkillDetailView(
                         skill: skill,
                         repository: vm.repository,
+                        content: vm.selectedSkillContent,
+                        isLoadingContent: vm.isLoadingSelectedSkillContent,
+                        contentError: vm.selectedSkillContentError,
                         isInstalled: vm.isInstalled(skill),
                         canInstall: vm.canInstallFromLocal,
                         installDisabledReason: vm.installDisabledReason,
-                        onInstall: { vm.installSkill(skill) }
+                        onInstall: { vm.installSkill(skill) },
+                        onLoadContent: { await vm.loadContent(for: skill) }
                     )
                 } else {
                     EmptyStateView(
