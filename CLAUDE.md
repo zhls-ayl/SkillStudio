@@ -69,11 +69,11 @@ Views → ViewModels (@Observable) → SkillManager (@Observable) → Services (
 | Claude Code | `~/.claude/skills/` | `claude` binary | Own directory only |
 | Codex | `~/.codex/skills/` | `codex` binary | Own → `~/.agents/skills/` (shared global) |
 | Gemini CLI | `~/.gemini/skills/` | `gemini` binary | Own directory only |
-| Copilot CLI | `~/.copilot/skills/` | `gh` binary | Own → `~/.claude/skills/` |
+| GitHub Copilot | `~/.copilot/skills/` | `gh` binary | Own → `~/.claude/skills/` |
 | OpenCode | `~/.config/opencode/skills/` | `opencode` binary | Own → `~/.claude/skills/` → `~/.agents/skills/` |
 | Antigravity | `~/.gemini/antigravity/skills/` | `antigravity` binary | Own directory only |
 | Cursor | `~/.cursor/skills/` | `cursor` binary | Own → `~/.claude/skills/` |
-| Kiro | `~/.kiro/skills/` | `kiro` binary | Own directory only |
+| Kiro CLI | `~/.kiro/skills/` | `kiro` binary | Own directory only |
 | CodeBuddy | `~/.codebuddy/skills/` | `codebuddy` binary | Own directory only |
 | OpenClaw | `~/.openclaw/skills/` | `openclaw` binary | Own directory only |
 | Trae | `~/.trae/skills/` | `trae` binary | Own directory only |

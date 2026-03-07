@@ -6,11 +6,11 @@ enum AgentType: String, CaseIterable, Identifiable, Codable {
     case claudeCode = "claude-code"
     case codex = "codex"
     case geminiCLI = "gemini-cli"
-    case copilotCLI = "copilot-cli"
+    case copilotCLI = "github-copilot"
     case openCode = "opencode"       // OpenCode: Open source AI programming CLI tool
     case antigravity = "antigravity"   // Antigravity: Google's AI coding agent (https://antigravity.google)
     case cursor = "cursor"               // Cursor: AI-powered code editor (https://cursor.com)
-    case kiro = "kiro"                     // Kiro: AWS AI IDE built on Code OSS (https://kiro.dev)
+    case kiro = "kiro-cli"                 // Kiro CLI: AWS AI IDE built on Code OSS (https://kiro.dev)
     case codeBuddy = "codebuddy"           // CodeBuddy: Tencent Cloud AI coding assistant (https://www.codebuddy.ai)
     case openClaw = "openclaw"             // OpenClaw: AI coding assistant with ClawHub registry (https://openclaw.ai)
     case trae = "trae"                       // Trae: ByteDance's AI IDE (https://trae.ai)
@@ -23,15 +23,40 @@ enum AgentType: String, CaseIterable, Identifiable, Codable {
         case .claudeCode: "Claude Code"
         case .codex: "Codex"
         case .geminiCLI: "Gemini CLI"
-        case .copilotCLI: "Copilot CLI"
+        case .copilotCLI: "GitHub Copilot"
         case .openCode: "OpenCode"
         case .antigravity: "Antigravity"
         case .cursor: "Cursor"
-        case .kiro: "Kiro"
+        case .kiro: "Kiro CLI"
         case .codeBuddy: "CodeBuddy"
         case .openClaw: "OpenClaw"
         case .trae: "Trae"
         }
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+
+        switch rawValue {
+        case "copilot-cli", "github-copilot":
+            self = .copilotCLI
+        case "kiro", "kiro-cli":
+            self = .kiro
+        default:
+            guard let value = Self(rawValue: rawValue) else {
+                throw DecodingError.dataCorruptedError(
+                    in: container,
+                    debugDescription: "Unknown AgentType raw value: \(rawValue)"
+                )
+            }
+            self = value
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
     }
 
     /// Color scheme for each Agent, used for UI distinction

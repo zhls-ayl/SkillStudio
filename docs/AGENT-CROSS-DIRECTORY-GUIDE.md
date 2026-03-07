@@ -128,7 +128,7 @@ enum AgentType: String, CaseIterable, Identifiable, Codable {
     case claudeCode = "claude-code"
     case codex = "codex"
     case geminiCLI = "gemini-cli"
-    case copilotCLI = "copilot-cli"
+    case copilotCLI = "github-copilot"
     case openCode = "opencode"
     case aider = "aider"          // ← 新增
     // ...

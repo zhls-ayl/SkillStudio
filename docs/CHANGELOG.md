@@ -10,7 +10,7 @@
 
 #### 功能
 
-- 多代理支持（Claude Code、Codex、Gemini CLI、Copilot CLI、OpenCode、Antigravity、Cursor、Kiro、CodeBuddy、OpenClaw、Trae）
+- 多代理支持（Claude Code、Codex、Gemini CLI、GitHub Copilot、OpenCode、Antigravity、Cursor、Kiro CLI、CodeBuddy、OpenClaw、Trae）
 - 统一仪表板，三栏式原生 macOS 视图
 - skills.sh 注册表浏览器
 - 一键从 GitHub 安装 Skills

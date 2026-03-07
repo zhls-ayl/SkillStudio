@@ -26,7 +26,7 @@
 
 ## 功能特性
 
-- **多代理支持** — Claude Code、Codex、Gemini CLI、Copilot CLI、OpenCode、Antigravity、Cursor、Kiro、CodeBuddy、OpenClaw、Trae
+- **多代理支持** — Claude Code、Codex、Gemini CLI、GitHub Copilot、OpenCode、Antigravity、Cursor、Kiro CLI、CodeBuddy、OpenClaw、Trae
 - **注册表浏览** — 浏览 [skills.sh](https://skills.sh) 排行榜（全部 / 趋势 / 热门），搜索并一键安装
 - **统一仪表板** — 三栏式原生 macOS 视图，一览所有已安装技能
 - **主题切换** — 在设置页可选 System / Light / Dark，全局窗口统一生效并自动持久化
@@ -84,11 +84,11 @@ swift test
 | [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | `~/.claude/skills/` | `claude` 二进制 + 配置目录 | 仅自有目录 |
 | [Codex](https://github.com/openai/codex) | `~/.codex/skills/` | `codex` 二进制 | 自有 → `~/.agents/skills/` |
 | [Gemini CLI](https://github.com/google-gemini/gemini-cli) | `~/.gemini/skills/` | `gemini` 二进制 + 配置目录 | 仅自有目录 |
-| [Copilot CLI](https://docs.github.com/en/copilot/using-github-copilot/using-github-copilot-in-the-command-line) | `~/.copilot/skills/` | `gh` 二进制 | 自有 → `~/.claude/skills/` |
+| [GitHub Copilot](https://docs.github.com/en/copilot/using-github-copilot/using-github-copilot-in-the-command-line) | `~/.copilot/skills/` | `gh` 二进制 | 自有 → `~/.claude/skills/` |
 | [OpenCode](https://opencode.ai) | `~/.config/opencode/skills/` | `opencode` 二进制 | 自有 → `~/.claude/skills/` → `~/.agents/skills/` |
 | [Antigravity](https://antigravity.google) | `~/.gemini/antigravity/skills/` | `antigravity` 二进制 | 仅自有目录 |
 | [Cursor](https://cursor.com) | `~/.cursor/skills/` | `cursor` 二进制 | 自有 → `~/.claude/skills/` |
-| [Kiro](https://kiro.dev) | `~/.kiro/skills/` | `kiro` 二进制 | 仅自有目录 |
+| [Kiro CLI](https://kiro.dev) | `~/.kiro/skills/` | `kiro` 二进制 | 仅自有目录 |
 | [CodeBuddy](https://www.codebuddy.ai) | `~/.codebuddy/skills/` | `codebuddy` 二进制 | 仅自有目录 |
 | [OpenClaw](https://openclaw.ai) | `~/.openclaw/skills/` | `openclaw` 二进制 | 仅自有目录 |
 | [Trae](https://trae.ai) | `~/.trae/skills/` | `trae` 二进制 | 仅自有目录 |
