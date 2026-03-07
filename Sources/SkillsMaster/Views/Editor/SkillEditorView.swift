@@ -34,7 +34,7 @@ struct SkillEditorView: View {
                 // Right: Markdown preview
                 ScrollView {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Preview")
+                        Text("预览")
                             .font(.headline)
                             .foregroundStyle(.secondary)
 
@@ -55,14 +55,14 @@ struct SkillEditorView: View {
 
     private var editorToolbar: some View {
         HStack {
-            Text("Edit SKILL.md")
+            Text("编辑 SKILL.md")
                 .font(.headline)
 
             Spacer()
 
-            // Save status indicator
+            // 保存 status indicator
             if viewModel.saveSuccess {
-                Label("Saved", systemImage: "checkmark.circle.fill")
+                Label("已保存", systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
                     .font(.subheadline)
             }
@@ -73,14 +73,14 @@ struct SkillEditorView: View {
                     .font(.caption)
             }
 
-            // Cancel button
-            Button("Cancel") {
+            // 取消 button
+            Button("取消") {
                 isPresented = false
             }
             .keyboardShortcut(.cancelAction)  // Esc key
 
-            // Save button
-            Button("Save") {
+            // 保存 button
+            Button("保存") {
                 Task { await viewModel.save() }
             }
             .keyboardShortcut(.defaultAction)  // Enter key

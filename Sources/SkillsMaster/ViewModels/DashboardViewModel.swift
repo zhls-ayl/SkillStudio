@@ -44,24 +44,24 @@ final class DashboardViewModel {
         }
 
         /// SF Symbols icon name: ascending uses up arrow, descending uses down arrow
-        var iconName: String {
+        var icon名称: String {
             self == .ascending ? "arrowtriangle.up.fill" : "arrowtriangle.down.fill"
         }
 
         /// Display text
-        var displayName: String {
-            self == .ascending ? "Ascending" : "Descending"
+        var display名称: String {
+            self == .ascending ? "升序" : "降序"
         }
     }
 
     /// Sort order enum
     enum SortOrder: String, CaseIterable {
-        case name = "Name"
-        case scope = "Scope"
-        case agent = "Agent Count"
+        case name = "名称"
+        case scope = "作用域"
+        case agent = "Agent 数量"
 
         /// Each sort order corresponds to an SF Symbol icon
-        var iconName: String {
+        var icon名称: String {
             switch self {
             case .name: return "textformat.abc"
             case .scope: return "scope"
@@ -107,17 +107,17 @@ final class DashboardViewModel {
         case .name:
             result.sort {
                 ascending
-                    ? $0.displayName.lowercased() < $1.displayName.lowercased()
-                    : $0.displayName.lowercased() > $1.displayName.lowercased()
+                    ? $0.display名称.lowercased() < $1.display名称.lowercased()
+                    : $0.display名称.lowercased() > $1.display名称.lowercased()
             }
         case .scope:
             result.sort {
                 ascending
-                    ? $0.scope.displayName < $1.scope.displayName
-                    : $0.scope.displayName > $1.scope.displayName
+                    ? $0.scope.display名称 < $1.scope.display名称
+                    : $0.scope.display名称 > $1.scope.display名称
             }
         case .agent:
-            // Agent Count defaults to descending (most first) for better visibility
+            // Agent 数量 defaults to descending (most first) for better visibility
             result.sort {
                 ascending
                     ? $0.installations.count < $1.installations.count
@@ -140,7 +140,7 @@ final class DashboardViewModel {
         do {
             try await skillManager.deleteSkill(skill)
         } catch {
-            skillManager.errorMessage = "Delete failed: \(error.localizedDescription)"
+            skillManager.errorMessage = "删除失败：\(error.localizedDescription)"
         }
         skillToDelete = nil
         showDeleteConfirmation = false

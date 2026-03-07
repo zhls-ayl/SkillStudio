@@ -7,9 +7,9 @@ struct SettingsView: View {
 
     var body: some View {
         TabView {
-            GeneralSettingsView()
+            通用SettingsView()
                 .tabItem {
-                    Label("General", systemImage: "gear")
+                    Label("通用", systemImage: "gear")
                 }
 
             // Custom repositories: GitHub/GitLab SSH sources for Skills
@@ -18,9 +18,9 @@ struct SettingsView: View {
                     Label("Repositories", systemImage: "archivebox")
                 }
 
-            AboutSettingsView()
+            关于SettingsView()
                 .tabItem {
-                    Label("About", systemImage: "info.circle")
+                    Label("关于", systemImage: "info.circle")
                 }
         }
         // Widened and taller to accommodate the Repositories list tab
@@ -28,8 +28,8 @@ struct SettingsView: View {
     }
 }
 
-/// General settings
-struct GeneralSettingsView: View {
+/// 通用 settings
+struct 通用SettingsView: View {
 
     /// Persisted appearance mode in UserDefaults.
     ///
@@ -91,11 +91,11 @@ struct GeneralSettingsView: View {
     }
 }
 
-/// About page (with app update check UI)
+/// 关于 page (with app update check UI)
 ///
 /// @Environment(SkillManager.self) gets SkillManager instance from View tree.
 /// Injected via Settings { ... .environment(skillManager) } in SkillsMasterApp.
-struct AboutSettingsView: View {
+struct 关于SettingsView: View {
 
     /// Get SkillManager from View environment
     /// @Environment is similar to React's useContext or Android's dependency injection
@@ -206,18 +206,18 @@ struct AboutSettingsView: View {
                 }
 
                 HStack(spacing: 12) {
-                    // "Update Now" button triggers download and install update
+                    // "立即更新" button triggers download and install update
                     // .borderedProminent is filled prominent button style (similar to Material Design's Filled Button)
-                    Button("Update Now") {
+                    Button("立即更新") {
                         Task { await skillManager.performUpdate() }
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
 
-                    // "View on GitHub" link opens Release page in browser
+                    // "在 GitHub 查看" link opens Release page in browser
                     // Uses Link component instead of Button because it's external navigation (opens browser)
                     if let url = URL(string: updateInfo.htmlUrl) {
-                        Link("View on GitHub", destination: url)
+                        Link("在 GitHub 查看", destination: url)
                             .font(.caption)
                     }
                 }
@@ -225,7 +225,7 @@ struct AboutSettingsView: View {
         } else {
             // No update/not checked state: show manual check button
             // force: true ignores 4-hour interval limit, executes check immediately
-            Button("Check for Updates") {
+            Button("检查更新") {
                 Task { await skillManager.checkForAppUpdate(force: true) }
             }
             .buttonStyle(.bordered)

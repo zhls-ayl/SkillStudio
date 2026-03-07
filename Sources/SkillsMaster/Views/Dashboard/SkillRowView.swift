@@ -93,24 +93,24 @@ struct SkillRowView: View {
             ProgressView()
                 .controlSize(.mini)
         case .hasUpdate:
-            // Update available: orange up arrow in filled circle icon
+            // 有可用更新: orange up arrow in filled circle icon
             Image(systemName: "arrow.up.circle.fill")
                 .foregroundStyle(.orange)
                 .font(.caption)
-                .help("Update available")
+                .help("有可用更新")
         case .upToDate:
-            // Up to date: green checkmark in filled circle icon
+            // 已是最新: green checkmark in filled circle icon
             Image(systemName: "checkmark.circle.fill")
                 .foregroundStyle(.green)
                 .font(.caption)
-                .help("Up to date")
+                .help("已是最新")
         case .error(let message):
-            // Check failed: yellow warning triangle icon, hover shows error details
+            // 检查失败：yellow warning triangle icon, hover shows error details
             // .help() sets mouse hover tooltip (native macOS feature)
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(.yellow)
                 .font(.caption)
-                .help("Check failed: \(message)")
+                .help("检查失败：\(message)")
         }
     }
 }

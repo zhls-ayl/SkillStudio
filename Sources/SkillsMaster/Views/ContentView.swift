@@ -89,8 +89,8 @@ struct ContentView: View {
                 } else {
                     EmptyStateView(
                         icon: "globe",
-                        title: "Select a Skill",
-                        subtitle: "Choose a skill from the registry to view its details"
+                        title: "请选择 Skill",
+                        subtitle: "请从 Registry 中选择一个 Skill 查看详情"
                     )
                 }
             } else if case .customRepo = selectedSidebarItem {
@@ -108,8 +108,8 @@ struct ContentView: View {
                 } else {
                     EmptyStateView(
                         icon: "archivebox",
-                        title: "Select a Skill",
-                        subtitle: "Choose a skill from the repository to view its details"
+                        title: "请选择 Skill",
+                        subtitle: "请从 Repository 中选择一个 Skill 查看详情"
                     )
                 }
             } else if let skillID = selectedSkillID, let vm = detailVM {
@@ -123,8 +123,8 @@ struct ContentView: View {
             } else {
                 EmptyStateView(
                     icon: "square.stack.3d.up",
-                    title: "Select a Skill",
-                    subtitle: "Choose a skill from the list to view its details"
+                    title: "请选择 Skill",
+                    subtitle: "请从列表中选择一个 Skill 查看详情"
                 )
             }
         }

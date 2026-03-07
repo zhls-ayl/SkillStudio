@@ -18,10 +18,10 @@ struct RegistrySkillDetailView: View {
     let skill: RegistrySkill
 
     /// Whether this skill is already installed locally
-    let isInstalled: Bool
+    let is安装ed: Bool
 
-    /// Closure called when user clicks the "Install" button
-    let onInstall: () -> Void
+    /// Closure called when user clicks the "安装" button
+    let on安装: () -> Void
 
     /// Reference to the RegistryBrowserViewModel for content-loading state
     ///
@@ -82,9 +82,9 @@ struct RegistrySkillDetailView: View {
                     // .textSelection(.enabled) allows the user to select and copy text
                     .textSelection(.enabled)
 
-                // "Installed" badge — same visual style as SkillInstallView and RegistrySkillRowView
-                if isInstalled {
-                    Text("Installed")
+                // "安装ed" badge — same visual style as Skill安装View and RegistrySkillRowView
+                if is安装ed {
+                    Text("安装ed")
                         .font(.caption)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
@@ -133,10 +133,10 @@ struct RegistrySkillDetailView: View {
                     }
                 }
                 GridRow {
-                    Text("Installs").foregroundStyle(.secondary)
+                    Text("安装s").foregroundStyle(.secondary)
                     HStack(spacing: 8) {
                         // Show both formatted and exact count
-                        Text(skill.formattedInstalls)
+                        Text(skill.formatted安装s)
                             .fontWeight(.medium)
                         Text("(\(skill.installs))")
                             .foregroundStyle(.tertiary)
@@ -234,16 +234,16 @@ struct RegistrySkillDetailView: View {
                 .font(.headline)
 
             HStack(spacing: 12) {
-                // Install button — triggers the install flow via the parent's onInstall callback
+                // 安装 button — triggers the install flow via the parent's on安装 callback
                 Button {
-                    onInstall()
+                    on安装()
                 } label: {
-                    Label("Install Skill", systemImage: "arrow.down.circle")
+                    Label("安装 Skill", systemImage: "arrow.down.circle")
                 }
                 // .borderedProminent gives the button a filled, prominent appearance
                 // This is the macOS equivalent of a "primary" button
                 .buttonStyle(.borderedProminent)
-                .disabled(isInstalled)
+                .disabled(is安装ed)
 
                 // Open on skills.sh — opens the skill's detail page in the browser
                 // URL format: https://skills.sh/{source}/{skillId}
@@ -254,14 +254,14 @@ struct RegistrySkillDetailView: View {
                         NSWorkspace.shared.open(url)
                     }
                 } label: {
-                    Label("View on skills.sh", systemImage: "safari")
+                    Label("在 skills.sh 查看", systemImage: "safari")
                 }
                 .buttonStyle(.bordered)
             }
 
             // CLI install hint — shows the npx command for reference
             VStack(alignment: .leading, spacing: 4) {
-                Text("CLI Install Command")
+                Text("CLI 安装 Command")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -283,7 +283,7 @@ struct RegistrySkillDetailView: View {
     ///
     /// Displays three states based on the ViewModel's content-loading properties:
     /// 1. **Loading**: ProgressView spinner while content is being fetched from GitHub
-    /// 2. **Error**: Error message with a fallback "View on skills.sh" link
+    /// 2. **Error**: Error message with a fallback "在 skills.sh 查看" link
     /// 3. **Loaded**: Full SKILL.md body rendered as native SwiftUI views via MarkdownContentView
     ///
     /// This is similar to React's conditional rendering pattern:
@@ -324,7 +324,7 @@ struct RegistrySkillDetailView: View {
                             NSWorkspace.shared.open(url)
                         }
                     } label: {
-                        Label("View on skills.sh instead", systemImage: "safari")
+                        Label("在 skills.sh 查看 instead", systemImage: "safari")
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)

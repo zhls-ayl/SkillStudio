@@ -67,12 +67,12 @@ struct RepositoryBrowserView: View {
         .onChange(of: skillManager.repoSyncStatuses[viewModel.repository.id]) { _, newStatus in
             Task { await viewModel.handleSyncStatusChange(newStatus) }
         }
-        // Install sheet: same .sheet(item:) pattern as RegistryBrowserView
+        // 安装 sheet: same .sheet(item:) pattern as RegistryBrowserView
         .sheet(item: $viewModel.installVM, onDismiss: {
             viewModel.installVM?.cleanup()
             viewModel.installVM = nil
         }) { vm in
-            SkillInstallView(viewModel: vm)
+            Skill安装View(viewModel: vm)
                 .environment(skillManager)
         }
     }
@@ -247,10 +247,10 @@ struct RepositoryBrowserView: View {
                 // Each row is a button that selects the skill for the detail pane
                 RepositorySkillRowView(
                     skill: skill,
-                    isInstalled: viewModel.isInstalled(skill),
-                    isInstallEnabled: viewModel.canInstallFromLocal,
+                    is安装ed: viewModel.is安装ed(skill),
+                    is安装Enabled: viewModel.can安装FromLocal,
                     installDisabledReason: viewModel.installDisabledReason,
-                    onInstall: { viewModel.installSkill(skill) }
+                    on安装: { viewModel.installSkill(skill) }
                 )
                 // .tag associates this row with the skill ID for List selection tracking
                 .tag(skill.id)
@@ -265,15 +265,15 @@ struct RepositoryBrowserView: View {
 
 /// Displays a single skill from a custom repository.
 ///
-/// Shows: skill name, description, tags, installed badge, and Install button.
+/// Shows: skill name, description, tags, installed badge, and 安装 button.
 /// The layout is consistent with RegistrySkillRowView.
 private struct RepositorySkillRowView: View {
 
     let skill: GitService.DiscoveredSkill
-    let isInstalled: Bool
-    let isInstallEnabled: Bool
+    let is安装ed: Bool
+    let is安装Enabled: Bool
     let installDisabledReason: String?
-    let onInstall: () -> Void
+    let on安装: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
@@ -285,9 +285,9 @@ private struct RepositorySkillRowView: View {
                         .font(.headline)
                         .lineLimit(1)
 
-                    // "Installed" badge — same green capsule style as RegistrySkillRowView
-                    if isInstalled {
-                        Text("Installed")
+                    // "安装ed" badge — same green capsule style as RegistrySkillRowView
+                    if is安装ed {
+                        Text("安装ed")
                             .font(.caption2)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
@@ -309,21 +309,21 @@ private struct RepositorySkillRowView: View {
 
             Spacer()
 
-            // Install button
-            Button("Install") {
-                onInstall()
+            // 安装 button
+            Button("安装") {
+                on安装()
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
-            .disabled(isInstalled || !isInstallEnabled)
+            .disabled(is安装ed || !is安装Enabled)
             .help(installHelpText)
         }
         .padding(.vertical, 4)
     }
 
     private var installHelpText: String {
-        if isInstalled { return "Already installed" }
+        if is安装ed { return "Already installed" }
         if let installDisabledReason { return installDisabledReason }
-        return "Install this skill from local repository clone"
+        return "安装 this skill from local repository clone"
     }
 }

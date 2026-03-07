@@ -1,17 +1,17 @@
 import SwiftUI
 
-/// SkillInstallView is the F10 (one-click install) dialog interface
+/// Skill安装View is the F10 (one-click install) dialog interface
 ///
 /// Two-step process:
 /// 1. Enter GitHub repository URL → click "Scan" to scan
-/// 2. Select skills to install and target Agent → click "Install" to install
+/// 2. Select skills to install and target Agent → click "安装" to install
 ///
 /// Uses `.sheet()` to popup from SidebarView, automatically cleans up temp directory on close
-struct SkillInstallView: View {
+struct Skill安装View: View {
 
     /// ViewModel manages installation process state
     /// @Bindable allows @Observable object properties to create Binding (two-way binding)
-    @Bindable var viewModel: SkillInstallViewModel
+    @Bindable var viewModel: Skill安装ViewModel
 
     /// Get dismiss action from environment, used to close sheet
     /// @Environment(\.dismiss) is SwiftUI's standard way to close currently presented view (sheet/popover, etc.)
@@ -111,7 +111,7 @@ struct SkillInstallView: View {
             // Users can click a history item to auto-fill the URL and trigger Scan
             if !viewModel.repoHistory.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Recent Repositories")
+                    Text("最近使用的 Repositories")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .padding(.horizontal, 40)
@@ -171,7 +171,7 @@ struct SkillInstallView: View {
         .task {
             await viewModel.loadHistory()
             // F09: Auto-fetch if URL was pre-filled from Registry Browser
-            // When user clicks "Install" on a registry skill, the URL is already set
+            // When user clicks "安装" on a registry skill, the URL is already set
             // and autoFetch is true, so we skip the manual "Scan" step
             if viewModel.autoFetch && !viewModel.repoURLInput.isEmpty {
                 viewModel.autoFetch = false  // One-shot flag: don't re-fetch on view re-render
@@ -199,7 +199,7 @@ struct SkillInstallView: View {
             // Skill list (scrollable)
             // List is macOS native list component, with built-in selection, scrolling, etc.
             List {
-                Section("Skills Found (\(viewModel.discoveredSkills.count))") {
+                Section("已发现 Skills（\(viewModel.discoveredSkills.count))") {
                     ForEach(viewModel.discoveredSkills) { skill in
                         skillRow(skill)
                     }
@@ -213,7 +213,7 @@ struct SkillInstallView: View {
             VStack(spacing: 12) {
                 // Agent selection area (two-row layout to avoid horizontal squeezing)
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Install to:")
+                    Text("安装到：")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
@@ -222,7 +222,7 @@ struct SkillInstallView: View {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), alignment: .leading)], alignment: .leading, spacing: 8) {
                         // ForEach iterates through all detected Agents
                         ForEach(AgentType.allCases) { agentType in
-                            let isDetected = skillManager.agents.first { $0.type == agentType }?.isInstalled == true
+                            let isDetected = skillManager.agents.first { $0.type == agentType }?.is安装ed == true
                             // Toggle is macOS switch/checkbox component
                             Toggle(isOn: Binding(
                                 get: { viewModel.selectedAgents.contains(agentType) },
@@ -241,17 +241,17 @@ struct SkillInstallView: View {
                     }
                 }
 
-                // Install button
+                // 安装 button
                 HStack {
                     // Selected count hint
-                    let selectedCount = viewModel.selectedSkillNames.count
-                    Text("\(selectedCount) skill\(selectedCount == 1 ? "" : "s") selected")
+                    let 已选择Count = viewModel.selectedSkillNames.count
+                    Text("\(selectedCount) skill\(selectedCount == 1 ? "" : "s") 已选择")
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
                     Spacer()
 
-                    Button("Install") {
+                    Button("安装") {
                         Task { await viewModel.installSelected() }
                     }
                     .disabled(viewModel.selectedSkillNames.isEmpty || viewModel.selectedAgents.isEmpty)
@@ -263,7 +263,7 @@ struct SkillInstallView: View {
         }
     }
 
-    /// Phase: Installing in progress
+    /// Phase: 安装ing in progress
     private var installingPhase: some View {
         VStack(spacing: 16) {
             Spacer()
@@ -275,7 +275,7 @@ struct SkillInstallView: View {
         }
     }
 
-    /// Phase: Installation completed
+    /// Phase: 安装ation completed
     private var completedPhase: some View {
         VStack(spacing: 16) {
             Spacer()
@@ -284,25 +284,25 @@ struct SkillInstallView: View {
                 .font(.system(size: 48))
                 .foregroundStyle(.green)
 
-            Text("Installation Complete")
+            Text("安装ation Complete")
                 .font(.headline)
 
-            Text("\(viewModel.installedCount) skill\(viewModel.installedCount == 1 ? "" : "s") installed successfully")
+            Text("\(viewModel.installedCount) skill\(viewModel.installedCount == 1 ? "" : "s") 个 Skill 安装成功")
                 .foregroundStyle(.secondary)
 
             HStack(spacing: 12) {
                 if viewModel.isLocalSource {
-                    Button("Back to Selection") {
-                        viewModel.backToSelectionForLocalInstall()
+                    Button("返回选择页") {
+                        viewModel.backToSelectionForLocal安装()
                     }
                 } else {
-                    // "Install More" button: reset state and start over
-                    Button("Install More") {
+                    // "安装 More" button: reset state and start over
+                    Button("安装 More") {
                         viewModel.reset()
                     }
                 }
 
-                Button("Done") {
+                Button("完成") {
                     // dismiss() closes current sheet
                     dismiss()
                 }
@@ -323,7 +323,7 @@ struct SkillInstallView: View {
                 .font(.system(size: 48))
                 .foregroundStyle(.orange)
 
-            Text("Something went wrong")
+            Text("出现问题了")
                 .font(.headline)
 
             Text(message)
@@ -331,7 +331,7 @@ struct SkillInstallView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
 
-            Button("Try Again") {
+            Button("重试") {
                 viewModel.reset()
             }
 
@@ -344,7 +344,7 @@ struct SkillInstallView: View {
     /// Skill list row: checkbox + name + description + "Already installed" badge
     @ViewBuilder
     private func skillRow(_ skill: GitService.DiscoveredSkill) -> some View {
-        let isAlreadyInstalled = viewModel.alreadyInstalledNames.contains(skill.id)
+        let isAlready安装ed = viewModel.already安装edNames.contains(skill.id)
 
         HStack {
             // Checkbox
@@ -356,7 +356,7 @@ struct SkillInstallView: View {
                 EmptyView()
             }
             .toggleStyle(.checkbox)
-            .disabled(isAlreadyInstalled)
+            .disabled(isAlready安装ed)
 
             // Skill info
             VStack(alignment: .leading, spacing: 2) {
@@ -366,8 +366,8 @@ struct SkillInstallView: View {
                         .fontWeight(.medium)
 
                     // "Already installed" badge
-                    if isAlreadyInstalled {
-                        Text("Installed")
+                    if isAlready安装ed {
+                        Text("安装ed")
                             .font(.caption2)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
@@ -389,6 +389,6 @@ struct SkillInstallView: View {
             Spacer()
         }
         // Row opacity: installed skills have reduced opacity
-        .opacity(isAlreadyInstalled ? 0.6 : 1.0)
+        .opacity(isAlready安装ed ? 0.6 : 1.0)
     }
 }

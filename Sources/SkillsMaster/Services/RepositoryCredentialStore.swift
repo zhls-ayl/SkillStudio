@@ -13,9 +13,9 @@ enum RepositoryCredentialStore {
             switch self {
             case .keychainError(let status):
                 if let message = SecCopyErrorMessageString(status, nil) as String? {
-                    return "Keychain error: \(message)"
+                    return "Keychain 错误：\(message)"
                 }
-                return "Keychain error: \(status)"
+                return "Keychain 错误：\(status)"
             }
         }
     }

@@ -10,7 +10,7 @@ struct RepositoriesSettingsView: View {
 
     @Environment(SkillManager.self) private var skillManager
 
-    /// Controls visibility of the "Add Repository" sheet
+    /// Controls visibility of the "添加 Repository" sheet
     @State private var showAddSheet = false
 
     var body: some View {
@@ -32,7 +32,7 @@ struct RepositoriesSettingsView: View {
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: 300)
 
-                    Button("Add Repository") {
+                    Button("添加 Repository") {
                         showAddSheet = true
                     }
                     .buttonStyle(.borderedProminent)
@@ -74,7 +74,7 @@ struct RepositoriesSettingsView: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
         }
-        // Add Repository sheet
+        // 添加 Repository sheet
         .sheet(isPresented: $showAddSheet) {
             AddRepositorySheet(isPresented: $showAddSheet)
                 .environment(skillManager)
@@ -125,8 +125,8 @@ private struct RepositoryRowView: View {
 
             // Last synced timestamp or "Never"
             VStack(alignment: .trailing, spacing: 2) {
-                if let date = repo.effectiveLastSyncedAt {
-                    Text("Synced")
+                if let date = repo.effectiveLast同步edAt {
+                    Text("同步ed")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                     TimelineView(.periodic(from: .now, by: 60)) { context in
@@ -142,7 +142,7 @@ private struct RepositoryRowView: View {
                 }
             }
 
-            // Sync status indicator
+            // 同步 status indicator
             syncStatusView
 
             Button {
@@ -166,15 +166,15 @@ private struct RepositoryRowView: View {
                 }
             }
             .buttonStyle(.borderless)
-            .help("Remove repository")
+            .help("移除 repository")
             .disabled(isRemoving)
         }
         .padding(.vertical, 2)
-        .alert("Remove Repository?", isPresented: $showDeleteConfirmation) {
-            Button("Remove", role: .destructive) {
+        .alert("移除 Repository?", isPresented: $showDeleteConfirmation) {
+            Button("移除", role: .destructive) {
                 Task { await removeRepository() }
             }
-            Button("Cancel", role: .cancel) { }
+            Button("取消", role: .cancel) { }
         } message: {
             Text("This removes the repository config from SkillsMaster. Local clone files are kept.")
         }
@@ -187,7 +187,7 @@ private struct RepositoryRowView: View {
     /// Small inline sync status indicator
     @ViewBuilder
     private var syncStatusView: some View {
-        let status = skillManager.repoSyncStatuses[repo.id] ?? .idle
+        let status = skillManager.repo同步Statuses[repo.id] ?? .idle
         switch status {
         case .idle:
             EmptyView()
@@ -264,7 +264,7 @@ private struct RepositoryRowView: View {
 ///
 /// Editable fields:
 /// - Display name
-/// - Sync on Launch
+/// - 同步 on Launch
 /// - Scan hidden paths
 ///
 /// Read-only fields:
@@ -306,11 +306,11 @@ private struct EditRepositorySheet: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Toggle("Sync on Launch", isOn: $syncOnLaunch)
-                    .help("Controls only startup auto-sync. Manual 'Sync Now' is always available.")
+                Toggle("同步 on Launch", isOn: $syncOnLaunch)
+                    .help("Controls only startup auto-sync. Manual '同步 Now' is always available.")
                 Text(syncOnLaunch
                      ? "This repository will auto-sync when SkillsMaster starts."
-                     : "No startup auto-sync. Use 'Sync Now' when needed.")
+                     : "No startup auto-sync. Use '同步 Now' when needed.")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -359,14 +359,14 @@ private struct EditRepositorySheet: View {
             Spacer()
 
             HStack {
-                Button("Cancel") {
+                Button("取消") {
                     isPresented = false
                 }
                 .keyboardShortcut(.cancelAction)
 
                 Spacer()
 
-                Button(isSaving ? "Saving…" : "Save") {
+                Button(isSaving ? "Saving…" : "保存") {
                     Task { await save() }
                 }
                 .buttonStyle(.borderedProminent)
@@ -399,7 +399,7 @@ private struct EditRepositorySheet: View {
     }
 }
 
-// MARK: - Add Repository Sheet
+// MARK: - 添加 Repository Sheet
 
 /// Sheet for adding a new custom repository.
 ///
@@ -537,12 +537,12 @@ struct AddRepositorySheet: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Toggle("Sync on Launch", isOn: $syncOnLaunch)
+                Toggle("同步 on Launch", isOn: $syncOnLaunch)
                     .help("When enabled, this repository auto-syncs when SkillsMaster starts. Disabled by default for better startup performance.")
 
                 Text(syncOnLaunch
                      ? "This repository will auto-sync at app startup."
-                     : "Default mode: no startup auto-sync. You can always sync manually with 'Sync Now'.")
+                     : "Default mode: no startup auto-sync. You can always sync manually with '同步 Now'.")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -576,14 +576,14 @@ struct AddRepositorySheet: View {
 
             // Action buttons
             HStack {
-                Button("Cancel") {
+                Button("取消") {
                     isPresented = false
                 }
                 .keyboardShortcut(.cancelAction)  // Esc key dismisses
 
                 Spacer()
 
-                Button(isAdding ? "Adding…" : "Add Repository") {
+                Button(isAdding ? "Adding…" : "添加 Repository") {
                     Task { await addRepository() }
                 }
                 .buttonStyle(.borderedProminent)
@@ -631,7 +631,7 @@ struct AddRepositorySheet: View {
             authType: authType,
             platform: SkillRepository.platformFrom(repoURL: url),
             isEnabled: true,
-            lastSyncedAt: nil,
+            last同步edAt: nil,
             localSlug: SkillRepository.slugFrom(repoURL: url),
             httpUsername: authType == .httpsToken ? (username.isEmpty ? nil : username) : nil,
             credentialKey: credentialKey,

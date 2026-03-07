@@ -180,7 +180,7 @@ final class RegistryBrowserViewModel {
         } catch {
             // leaderboard 抓取失败时，走温和降级。
             // 不显示过于“报错感”的提示，而是引导用户改用搜索。
-            errorMessage = "Unable to load leaderboard. Try searching instead."
+            errorMessage = "无法加载排行榜，请改用搜索。"
             leaderboardUnavailable = true
             displayedSkills = []
         }
@@ -258,7 +258,7 @@ final class RegistryBrowserViewModel {
             }
         } catch {
             if isSearchActive {
-                errorMessage = "Search failed: \(error.localizedDescription)"
+                errorMessage = "搜索失败：\(error.localizedDescription)"
                 displayedSkills = []
             }
         }

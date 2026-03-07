@@ -241,7 +241,7 @@ actor UpdateChecker {
             throw NSError(
                 domain: "UpdateChecker",
                 code: Int(unzipProcess.terminationStatus),
-                userInfo: [NSLocalizedDescriptionKey: "Failed to extract update archive"]
+                userInfo: [NSLocalizedDescriptionKey: "解压更新包失败"]
             )
         }
 
@@ -267,7 +267,7 @@ actor UpdateChecker {
                 throw NSError(
                     domain: "UpdateChecker",
                     code: -1,
-                    userInfo: [NSLocalizedDescriptionKey: "No .app bundle found in the update archive"]
+                    userInfo: [NSLocalizedDescriptionKey: "更新包中未找到 .app bundle"]
                 )
             }
             // Found nested .app, continue using it

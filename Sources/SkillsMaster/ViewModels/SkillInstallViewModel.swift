@@ -69,9 +69,9 @@ final class SkillInstallViewModel: Identifiable {
     var sheetTitle: String {
         switch sourceMode {
         case .remoteClone:
-            return "Install Skills from GitHub"
+            return "从 GitHub 安装 Skills"
         case .localRepository:
-            return "Install Skills from Custom Repository"
+            return "从 Custom Repository 安装 Skills"
         }
     }
 
@@ -150,7 +150,7 @@ final class SkillInstallViewModel: Identifiable {
         repoHistory = await skillManager.getRepoHistory()
     }
 
-    /// Select a history entry: auto-fill URL input and trigger Scan
+    /// Select a history entry: auto-fill URL input and trigger 扫描
     ///
     /// Called when the user taps a row in the Install Sheet's history list.
     /// Uses the source (owner/repo) format as input — fetchRepository() will normalize it internally.
@@ -169,7 +169,7 @@ final class SkillInstallViewModel: Identifiable {
     /// 1. Normalize URL (supports "owner/repo" and full URL formats)
     /// 2. Check if git is available
     /// 3. Shallow clone repository
-    /// 4. Scan SKILL.md files
+    /// 4. 扫描 SKILL.md files
     /// 5. Mark already installed skills
     /// 6. Transition to selection phase
     func fetchRepository() async {
@@ -198,8 +198,8 @@ final class SkillInstallViewModel: Identifiable {
             tempRepoDir = repoDir
             ownsTempRepoDir = true
 
-            // 4. Scan skills
-            progressMessage = "Scanning skills..."
+            // 4. 扫描 skills
+            progressMessage = "扫描ning skills..."
             let discovered = await gitService.scanSkillsInRepo(repoDir: repoDir)
 
             guard !discovered.isEmpty else {
@@ -242,7 +242,7 @@ final class SkillInstallViewModel: Identifiable {
     func installSelected() async {
         guard !selectedSkillNames.isEmpty else { return }
         guard let repoDir = tempRepoDir else {
-            phase = .error("Repository data not available. Please scan again.")
+            phase = .error("当前没有可用的 Repository 数据，请重新扫描。")
             return
         }
 
@@ -251,7 +251,7 @@ final class SkillInstallViewModel: Identifiable {
         let total = selectedSkillNames.count
 
         for skill in discoveredSkills where selectedSkillNames.contains(skill.id) {
-            progressMessage = "Installing \(skill.id) (\(installedCount + 1)/\(total))..."
+            progressMessage = "正在安装 \(skill.id) (\(installedCount + 1)/\(total))..."
 
             do {
                 try await skillManager.installSkill(

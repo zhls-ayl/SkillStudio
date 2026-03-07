@@ -79,9 +79,9 @@ final class RepositoryBrowserViewModel {
 
     /// Human-readable reason when install is disabled.
     var installDisabledReason: String? {
-        if isSyncing { return "Repository is syncing. Please wait." }
+        if isSyncing { return "Repository 正在同步，请稍候。" }
         if !repository.isCloned {
-            return "Repository must be synced before installing."
+            return "安装前需要先同步 Repository。"
         }
         return nil
     }
@@ -144,7 +144,7 @@ final class RepositoryBrowserViewModel {
             // Show the actual git error (e.g., SSH auth failure, network error)
             errorMessage = override
         } else if !repository.isCloned && allSkills.isEmpty && !isSyncing {
-            errorMessage = "Repository not yet synced. Use the Sync button to clone it."
+            errorMessage = "Repository 尚未同步，请先点击 Sync 按钮完成 clone。"
         }
     }
 
@@ -157,7 +157,7 @@ final class RepositoryBrowserViewModel {
             return
         }
         guard !allSkills.isEmpty else {
-            errorMessage = "No skills available to install. Please sync and try again."
+            errorMessage = "当前没有可安装的 Skills，请先同步后重试。"
             return
         }
 
@@ -219,7 +219,7 @@ final class RepositoryBrowserViewModel {
         case .error(let gitError):
             // Keep existing list data and surface the sync error.
             isLoading = false
-            errorMessage = "Sync failed: \(gitError)"
+            errorMessage = "同步失败：\(gitError)"
         }
     }
 

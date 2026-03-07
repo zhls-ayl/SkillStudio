@@ -8,10 +8,10 @@ struct RepositorySkillDetailView: View {
 
     let skill: GitService.DiscoveredSkill
     let repository: SkillRepository
-    let isInstalled: Bool
-    let canInstall: Bool
+    let is安装ed: Bool
+    let can安装: Bool
     let installDisabledReason: String?
-    let onInstall: () -> Void
+    let on安装: () -> Void
 
     var body: some View {
         ScrollView {
@@ -45,8 +45,8 @@ struct RepositorySkillDetailView: View {
                     .fontWeight(.bold)
                     .textSelection(.enabled)
 
-                if isInstalled {
-                    Text("Installed")
+                if is安装ed {
+                    Text("安装ed")
                         .font(.caption)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
@@ -117,12 +117,12 @@ struct RepositorySkillDetailView: View {
                 .font(.headline)
 
             Button {
-                onInstall()
+                on安装()
             } label: {
-                Label("Install Skill", systemImage: "arrow.down.circle")
+                Label("安装 Skill", systemImage: "arrow.down.circle")
             }
             .buttonStyle(.borderedProminent)
-            .disabled(isInstalled || !canInstall)
+            .disabled(is安装ed || !can安装)
             .help(installHelpText)
         }
     }
@@ -144,8 +144,8 @@ struct RepositorySkillDetailView: View {
     }
 
     private var installHelpText: String {
-        if isInstalled { return "Already installed" }
+        if is安装ed { return "Already installed" }
         if let installDisabledReason { return installDisabledReason }
-        return "Install this skill from local repository clone"
+        return "安装 this skill from local repository clone"
     }
 }

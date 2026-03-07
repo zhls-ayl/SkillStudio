@@ -55,9 +55,9 @@ struct SidebarView: View {
     var body: some View {
         List(selection: $selection) {
             // Section creates groups (shown as collapsible groups in macOS sidebar)
-            Section("Overview") {
+            Section("概览") {
                 sidebarRow {
-                    Label("Dashboard", systemImage: "square.grid.2x2")
+                    Label("仪表板", systemImage: "square.grid.2x2")
                 }
                 .badge(skillManager.skills.count)
                 // IMPORTANT: keep .tag as the outermost row modifier.
@@ -147,7 +147,7 @@ struct SidebarView: View {
                         Image(systemName: "arrow.up.circle.fill")
                             .foregroundStyle(.orange)
                     }
-                    .help("Update available! Click to open settings.")
+                    .help("发现可用更新，点击打开设置。")
                 }
             }
 
@@ -159,7 +159,7 @@ struct SidebarView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
-                .help("Install skill from GitHub")
+                .help("从 GitHub 安装 Skill")
             }
 
             // F12: Batch check updates for all skills
@@ -190,7 +190,7 @@ struct SidebarView: View {
                         Image(systemName: "arrow.triangle.2.circlepath")
                     }
                 }
-                .help("Check all skills for updates")
+                .help("检查全部 Skills 更新")
                 .disabled(skillManager.isCheckingUpdates)
             }
 
@@ -201,7 +201,7 @@ struct SidebarView: View {
                 } label: {
                     Image(systemName: "arrow.clockwise")
                 }
-                .help("Refresh skills")
+                .help("刷新 Skills")
             }
         }
         // F10: Install sheet modal
