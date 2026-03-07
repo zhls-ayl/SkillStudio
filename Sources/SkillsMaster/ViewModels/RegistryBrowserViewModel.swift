@@ -87,7 +87,7 @@ final class RegistryBrowserViewModel {
     }
 
     /// 当前是否处于 search mode。
-    /// 这是一个 computed property，不需要单独存储，直接由 `searchText` 推导得出。
+    /// 这是一个 computed property，不需要单独存储，直接由 `searchText` 推导。
     var isSearchActive: Bool {
         !searchText.isEmpty
     }
@@ -162,12 +162,12 @@ final class RegistryBrowserViewModel {
 
     // MARK: - Leaderboard
 
-    /// Load leaderboard data for the selected category
+    /// 加载当前 category 的 leaderboard 数据。
     ///
-    /// Fetches skill data from skills.sh HTML page via SkillRegistryService.
-    /// On failure, sets `leaderboardUnavailable` to show a fallback UI suggesting search.
+    /// 数据通过 `SkillRegistryService` 从 `skills.sh` 页面抓取。
+    /// 如果失败，会设置 `leaderboardUnavailable`，让界面退化为搜索提示。
     func loadLeaderboard() async {
-        // Don't load leaderboard if user is searching
+        // 用户处于搜索状态时，不再加载 leaderboard。
         guard !isSearchActive else { return }
 
         isLoading = true
@@ -178,8 +178,8 @@ final class RegistryBrowserViewModel {
             let skills = try await registryService.fetchLeaderboard(category: selectedCategory)
             displayedSkills = skills
         } catch {
-            // Leaderboard scraping failed — degrade gracefully
-            // Don't show a scary error; suggest using search instead
+            // leaderboard 抓取失败时，走温和降级。
+            // 不显示过于“报错感”的提示，而是引导用户改用搜索。
             errorMessage = "Unable to load leaderboard. Try searching instead."
             leaderboardUnavailable = true
             displayedSkills = []
@@ -188,20 +188,18 @@ final class RegistryBrowserViewModel {
         isLoading = false
     }
 
-    /// Switch leaderboard category tab and reload data
+    /// 切换 leaderboard category tab，并重新加载数据。
     ///
-    /// Called when user clicks a category tab (All Time / Trending / Hot).
-    /// The service has a 5-minute cache, so switching between tabs is fast
-    /// after the initial load.
+    /// 用户点击 `All Time / Trending / Hot` 时会调用这里。
+    /// 由于 service 层带有 5 分钟 cache，因此首轮加载之后切换 tab 会比较快。
     func selectCategory(_ category: SkillRegistryService.LeaderboardCategory) async {
         selectedCategory = category
         await loadLeaderboard()
     }
 
-    /// Refresh current data (clear cache and reload)
+    /// 刷新当前数据（清空 cache 后重新加载）。
     ///
-    /// Called from toolbar refresh button. Clears the service cache
-    /// so fresh data is fetched from skills.sh.
+    /// 由 toolbar 的刷新按钮触发，用来强制从 `skills.sh` 拉取最新数据。
     func refresh() async {
         await registryService.clearCache()
         if isSearchActive {
@@ -213,44 +211,39 @@ final class RegistryBrowserViewModel {
 
     // MARK: - Search
 
-    /// Called when searchText changes (with debounce)
+    /// 在 `searchText` 变化时触发（带 debounce）。
     ///
-    /// Implements search-as-you-type with a 300ms debounce:
-    /// 1. Cancel any pending search task
-    /// 2. If search text is empty, switch back to leaderboard
-    /// 3. Otherwise, wait 300ms then perform search
+    /// 当前实现的流程是：
+    /// 1. 取消任何尚未完成的搜索任务
+    /// 2. 如果搜索词为空，就切回 leaderboard
+    /// 3. 否则等待 300ms，再执行真正的搜索
     ///
-    /// The debounce prevents excessive API calls while the user is typing quickly.
-    /// `Task.sleep(for:)` suspends the task; if the task is cancelled (by a new keystroke),
-    /// the sleep throws CancellationError which is caught by `try?`.
+    /// 这样可以避免用户快速输入时触发过多 API 调用。
     func onSearchTextChanged() {
-        // Cancel previous pending search
+        // 取消上一个尚未完成的搜索任务。
         searchTask?.cancel()
 
         if searchText.isEmpty {
-            // User cleared the search field — switch back to leaderboard
+            // 用户清空了搜索框，切回 leaderboard。
             Task { await loadLeaderboard() }
             return
         }
 
-        // Create new debounced search task
+        // 创建新的 debounce 搜索任务。
         searchTask = Task {
-            // Wait 300ms for debounce — if user types another character,
-            // this task gets cancelled and a new one starts
+            // 等待 300ms；如果用户继续输入，这个任务会被取消并由新任务替代。
             try? await Task.sleep(for: .milliseconds(300))
 
-            // Check if task was cancelled during the sleep (user typed more)
-            // Task.isCancelled is a static property on the current task
+            // 检查任务在等待期间是否已经被取消（通常表示用户又输入了新内容）。
             guard !Task.isCancelled else { return }
 
             await performSearch()
         }
     }
 
-    /// Execute search against skills.sh API
+    /// 调用 `skills.sh` API 执行搜索。
     ///
-    /// Private method called after debounce completes.
-    /// Updates displayedSkills with search results or shows error.
+    /// 这是 debounce 完成后真正执行搜索的私有方法，负责更新 `displayedSkills` 或设置错误信息。
     private func performSearch() async {
         guard !searchText.isEmpty else { return }
 
@@ -259,7 +252,7 @@ final class RegistryBrowserViewModel {
 
         do {
             let skills = try await registryService.search(query: searchText)
-            // Only update if we're still in search mode (user may have cleared search during request)
+            // 只有在仍然处于 search mode 时才更新结果，避免请求返回时用户已经清空搜索框。
             if isSearchActive {
                 displayedSkills = skills
             }
@@ -275,43 +268,34 @@ final class RegistryBrowserViewModel {
 
     // MARK: - Install
 
-    /// Initiate install flow for a registry skill
+    /// 为指定的 registry skill 启动安装流程。
     ///
-    /// Creates a SkillInstallViewModel pre-filled with the skill's source repository,
-    /// then sets `autoFetch = true` so the install sheet automatically starts scanning
-    /// when it appears (no need for user to click "Scan" manually).
-    ///
-    /// This reuses the existing F10 install flow (SkillInstallViewModel + SkillInstallView),
-    /// which handles: clone repo → scan for SKILL.md → select skills/agents → install.
-    ///
-    /// - Parameter registrySkill: The registry skill to install
+    /// 这里会创建一个预填好 source repository 的 `SkillInstallViewModel`，
+    /// 并把 `autoFetch` 设为 `true`，让 install sheet 打开后自动开始扫描，
+    /// 用户不需要再手动点击 `Scan`。
     func installSkill(_ registrySkill: RegistrySkill) {
         let vm = SkillInstallViewModel(skillManager: skillManager)
-        // Pre-fill the repo URL input with the skill's source (e.g., "vercel-labs/agent-skills")
+        // 预填 repository 输入框，例如 `vercel-labs/agent-skills`。
         vm.repoURLInput = registrySkill.source
-        // Auto-trigger repository scanning when the sheet appears
+        // sheet 打开后自动触发 repository 扫描。
         vm.autoFetch = true
-        // Only pre-select the specific skill the user clicked, not all skills in the repo
+        // 只预选用户点击的那个 skill，而不是整个 repo 中的全部 skills。
         vm.targetSkillId = registrySkill.skillId
         installVM = vm
     }
 
-    /// Check if a registry skill is already installed locally
+    /// 判断某个 registry skill 是否已经在本地安装。
     ///
-    /// Performs source-aware matching to avoid false positives when multiple registry skills
-    /// share the same skillId but come from different repositories:
-    ///
-    /// 1. If a locally installed skill has the same skillId AND a matching source repo
-    ///    (from its lock entry), return true — exact match.
-    /// 2. If a locally installed skill has the same skillId but NO lock entry (manual install),
-    ///    fall back to skillId-only matching for backward compatibility.
-    /// 3. Otherwise return false — the skill is not installed.
+    /// 这里采用 source-aware 匹配，避免多个不同 repository 里的同名 `skillId` 产生误判：
+    /// 1. 如果本地 skill 的 `skillId` 和 source 都匹配，则返回 `true`
+    /// 2. 如果本地 skill 没有 `lockEntry`，则回退到仅按 `skillId` 匹配
+    /// 3. 其他情况返回 `false`
     func isInstalled(_ registrySkill: RegistrySkill) -> Bool {
-        // Check if installed with matching source repo (exact match on both skillId and source)
+        // 优先检查 source 是否精确匹配。
         if let installedSource = installedSkillSources[registrySkill.skillId] {
             return installedSource == registrySkill.source
         }
-        // Fallback: skill installed without source tracking — match by ID only
+        // 回退逻辑：如果没有 source 追踪信息，就只按 `skillId` 匹配。
         return installedSkillIDsNoSource.contains(registrySkill.skillId)
     }
 

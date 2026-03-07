@@ -9,22 +9,22 @@ import Dispatch
 /// 实现上复用了 `AgentDetector` 已验证过的 `Process` 调用模式，用统一方式执行外部命令。
 actor GitService {
 
-    /// Max time to wait for a single git command.
-    /// Prevents UI from spinning forever when ssh/git hangs on interactive prompts.
+    /// 单条 git 命令允许等待的最长时间。
+    /// 用来避免 ssh / git 因交互式提示卡住时，UI 一直处于无响应 loading 状态。
     private static let gitCommandTimeoutSeconds: TimeInterval = 300
 
     // MARK: - Error Types
 
-    /// Git operation related errors
-    /// LocalizedError protocol provides human-readable error descriptions (similar to Java's getMessage())
+    /// 与 git 操作相关的错误类型。
+    /// 通过 `LocalizedError` 提供适合展示给用户的错误描述。
     enum GitError: Error, LocalizedError {
-        /// Git is not installed on the system
+        /// 系统中未安装 Git。
         case gitNotInstalled
-        /// Git clone failed with error message
+        /// Git clone 失败，并附带错误信息。
         case cloneFailed(String)
-        /// Invalid repository URL format
+        /// repository URL 格式不合法。
         case invalidRepoURL(String)
-        /// Unable to get tree hash (git rev-parse failed)
+        /// 无法获取 tree hash（`git rev-parse` 失败）。
         case hashResolutionFailed(String)
 
         var errorDescription: String? {
@@ -43,25 +43,25 @@ actor GitService {
 
     // MARK: - Data Types
 
-    /// Skill information discovered in remote repository
-    /// Identifiable protocol allows SwiftUI's ForEach to iterate directly (requires id property)
+    /// 从远端 repository 中扫描得到的 skill 信息。
+    /// 这里实现 `Identifiable`，方便 SwiftUI 的 `ForEach` 直接使用。
     struct DiscoveredSkill: Identifiable {
-        /// Unique identifier: skill directory name, e.g. "find-skills"
+        /// 唯一标识：skill 目录名，例如 `find-skills`。
         let id: String
-        /// Relative path within repository, e.g. "skills/find-skills"
+        /// skill 在 repository 内的相对目录，例如 `skills/find-skills`。
         let folderPath: String
-        /// Relative path of SKILL.md within repository, e.g. "skills/find-skills/SKILL.md"
+        /// `SKILL.md` 在 repository 内的相对路径，例如 `skills/find-skills/SKILL.md`。
         let skillMDPath: String
-        /// Parsed SKILL.md metadata
+        /// 已解析出的 `SKILL.md` metadata。
         let metadata: SkillMetadata
-        /// Markdown 正文区域。 of SKILL.md
+        /// `SKILL.md` 的 Markdown 正文。
         let markdownBody: String
     }
 
     // MARK: - Public Methods
 
-    /// Check if git is installed on the system
-    /// Detected via `which git` command, exit code 0 means installed
+    /// 检查系统中是否可用 Git。
+    /// 这里通过 `which git` 判断，退出码为 `0` 表示已安装。
     func checkGitAvailable() async -> Bool {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
@@ -78,24 +78,22 @@ actor GitService {
         }
     }
 
-    /// Clone repository to temporary directory, supports shallow and full clone
+    /// 把 repository clone 到临时目录，支持 shallow clone 与 full clone。
     ///
     /// - Parameters:
-    ///   - repoURL: Full repository URL (e.g. "https://github.com/vercel-labs/skills.git")
-    ///   - shallow: true uses `--depth 1` shallow clone (only downloads latest commit, faster);
-    ///              false performs full clone (includes all git history, for commit hash backfill)
-    /// - Returns: Cloned local temporary directory URL
-    /// - Throws: GitError.gitNotInstalled or GitError.cloneFailed
+    ///   - repoURL: 完整 repository URL，例如 `https://github.com/vercel-labs/skills.git`
+    ///   - shallow: 为 `true` 时使用 `--depth 1`，只拉最新提交；为 `false` 时执行完整 clone
+    /// - Returns: clone 后的本地临时目录 URL
+    /// - Throws: `GitError.gitNotInstalled` 或 `GitError.cloneFailed`
     ///
-    /// Shallow clone `--depth 1` is similar to go-git's Depth: 1 option in Go.
-    /// Full clone requires more time and space, but allows access to git history.
+    /// shallow clone 更快、更省空间；full clone 则允许后续访问完整 git history。
     func cloneRepo(repoURL: String, shallow: Bool, httpAuthorization: String? = nil) async throws -> URL {
-        // Create temporary directory: /tmp/SkillsMaster-<UUID>/
-        // UUID ensures each clone uses a different directory to avoid conflicts
+        // 创建临时目录，例如 `/tmp/SkillsMaster-<UUID>/`。
+        // 使用 `UUID` 可以确保每次 clone 的目标目录都不同，避免冲突。
         let tempDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("SkillsMaster-\(UUID().uuidString)")
 
-        // Decide clone depth based on shallow parameter
+        // 根据 `shallow` 参数决定 clone 深度。
         var arguments: [String] = []
         if let httpAuthorization {
             arguments += ["-c", "http.extraHeader=\(httpAuthorization)"]
@@ -111,7 +109,7 @@ actor GitService {
             workingDirectory: nil
         )
 
-        // Verify clone succeeded (check if directory exists)
+        // 通过检查目录是否存在来确认 clone 是否成功。
         guard FileManager.default.fileExists(atPath: tempDir.path) else {
             throw GitError.cloneFailed(output)
         }
@@ -119,23 +117,21 @@ actor GitService {
         return tempDir
     }
 
-    /// Convenience method for shallow clone (maintains API compatibility)
+    /// shallow clone 的便捷方法，用于保持 API 兼容性。
     ///
-    /// Internally calls `cloneRepo(shallow: true)`, equivalent to `git clone --depth 1`
+    /// 内部直接调用 `cloneRepo(shallow: true)`，等价于 `git clone --depth 1`。
     func shallowClone(repoURL: String, httpAuthorization: String? = nil) async throws -> URL {
         try await cloneRepo(repoURL: repoURL, shallow: true, httpAuthorization: httpAuthorization)
     }
 
-    /// Get commit hash at repository HEAD (full 40-character SHA-1)
+    /// 获取 repository `HEAD` 对应的 commit hash（完整 40 位 SHA-1）。
     ///
-    /// - Parameter repoDir: Local directory of repository
-    /// - Returns: Full commit hash string (e.g. "abc123def456...", 40 characters)
-    /// - Throws: GitError.hashResolutionFailed
+    /// - Parameter repoDir: repository 本地目录
+    /// - Returns: 完整 commit hash 字符串
+    /// - Throws: `GitError.hashResolutionFailed`
     ///
-    /// `git rev-parse HEAD` returns the full SHA-1 hash of the latest commit on current branch.
-    /// Note: This is the **commit hash**, not tree hash.
-    /// Commit hash identifies a commit, tree hash identifies folder content snapshot.
-    /// GitHub compare URL requires commit hash to navigate correctly.
+    /// 注意这里拿到的是 **commit hash**，不是 tree hash。
+    /// GitHub compare URL 需要依赖 commit hash 才能正确跳转。
     func getCommitHash(in repoDir: URL) async throws -> String {
         let output = try await runGitCommand(
             arguments: ["rev-parse", "HEAD"],
@@ -148,37 +144,36 @@ actor GitService {
         return hash
     }
 
-    /// Search git history for commit that produced specified tree hash (for backfilling old skill's commit hash)
+    /// 在 git history 中查找“产生指定 tree hash 的 commit”，用于给旧 skill 回填 commit hash。
     ///
     /// - Parameters:
-    ///   - treeHash: Tree hash to match (from lockEntry.skillFolderHash)
-    ///   - folderPath: Relative path of skill in repository (e.g. "skills/find-skills")
-    ///   - repoDir: Full clone of repository directory (must contain git history, cannot be shallow clone)
-    /// - Returns: Matching commit hash, returns nil if not found
+    ///   - treeHash: 目标 tree hash，来自 `lockEntry.skillFolderHash`
+    ///   - folderPath: skill 在 repository 中的相对路径，例如 `skills/find-skills`
+    ///   - repoDir: 完整 clone 的 repository 目录；这里不能是 shallow clone
+    /// - Returns: 匹配到的 commit hash；如果找不到则返回 `nil`
     ///
-    /// Implementation principle:
-    /// 1. `git log --format=%H -- <folderPath>` gets list of all commits that modified this path
-    /// 2. Execute `git rev-parse <commit>:<folderPath>` for each commit to get tree hash under that commit
-    /// 3. Compare with target treeHash, return corresponding commit hash if match found
+    /// 实现思路：
+    /// 1. 先通过 `git log --format=%H -- <folderPath>` 找到所有修改过该路径的 commit
+    /// 2. 再对每个 commit 执行 `git rev-parse <commit>:<folderPath>`，取出当时的 tree hash
+    /// 3. 与目标 `treeHash` 对比，命中后返回对应的 commit hash
     ///
-    /// This method is slower (may require multiple git calls), only called when CommitHashCache has no cache,
-    /// result will be cached to `~/.agents/.skillsmaster-cache.json`, won't search again subsequently.
+    /// 这个方法相对较慢，因此只会在 `CommitHashCache` 没有缓存时触发；一旦命中结果，就会写入 cache。
     func findCommitForTreeHash(
         treeHash: String, folderPath: String, in repoDir: URL
     ) async throws -> String? {
-        // 1. Get list of all commits that modified this path
-        // --format=%H only outputs commit hash (one per line), no other info
+        // 1. 先找出所有修改过该路径的 commit。
+        // `--format=%H` 只输出 commit hash，每行一个。
         let logOutput = try await runGitCommand(
             arguments: ["log", "--format=%H", "--", folderPath],
             workingDirectory: repoDir
         )
 
-        // Split by line to get commit hash list
+        // 按行拆分，得到 commit hash 列表。
         let commits = logOutput.trimmingCharacters(in: .whitespacesAndNewlines)
             .split(separator: "\n")
             .map(String.init)
 
-        // 2. Check tree hash under this path for each commit
+        // 2. 逐个 commit 检查该路径下的 tree hash。
         for commit in commits {
             do {
                 let output = try await runGitCommand(
@@ -186,31 +181,30 @@ actor GitService {
                     workingDirectory: repoDir
                 )
                 let hash = output.trimmingCharacters(in: .whitespacesAndNewlines)
-                // 3. Found matching tree hash, return corresponding commit hash
+                // 3. 一旦找到匹配的 tree hash，就返回对应的 commit hash。
                 if hash == treeHash {
                     return commit
                 }
             } catch {
-                // Some commits may not contain this path (e.g. before path was renamed), skip
+                // 有些历史 commit 可能还没有这个路径（例如重命名前），这种情况直接跳过。
                 continue
             }
         }
 
-        // Traversed all commits without finding match
+        // 遍历完所有 commit 仍未命中。
         return nil
     }
 
-    /// Get git tree hash for specified path
+    /// 获取指定路径对应的 git tree hash。
     ///
     /// - Parameters:
-    ///   - path: Relative path within repository (e.g. "skills/find-skills")
-    ///   - repoDir: Local directory of repository
-    /// - Returns: Tree hash string (e.g. "abc123def...")
-    /// - Throws: GitError.hashResolutionFailed
+    ///   - path: repository 内的相对路径，例如 `skills/find-skills`
+    ///   - repoDir: repository 本地目录
+    /// - Returns: tree hash 字符串
+    /// - Throws: `GitError.hashResolutionFailed`
     ///
-    /// `git rev-parse HEAD:<path>` gets tree hash of specified path in HEAD commit,
-    /// this hash changes when any file under the path changes, used for update detection.
-    /// Similar to tree.Hash in go-git (Go).
+    /// `git rev-parse HEAD:<path>` 会返回 `HEAD` 提交下该路径的 tree hash。
+    /// 只要路径下任意文件变化，这个 hash 就会跟着变化，因此可用于更新检测。
     func getTreeHash(for path: String, in repoDir: URL) async throws -> String {
         let output = try await runGitCommand(
             arguments: ["rev-parse", "HEAD:\(path)"],
@@ -223,26 +217,23 @@ actor GitService {
         return hash
     }
 
-    /// Scan cloned repository directory, discover all skills containing SKILL.md
+    /// 扫描已 clone 的 repository 目录，发现其中所有包含 `SKILL.md` 的 skill。
     ///
     /// - Parameters:
-    ///   - repoDir: Local directory of cloned repository
-    ///   - includeHiddenPaths: Whether hidden path segments (e.g. `.claude/`) should be scanned.
-    ///     Defaults to true for generic scan use-cases. Custom repositories can override this.
-    /// - Returns: Array of all discovered skills
+    ///   - repoDir: 已 clone repository 的本地目录
+    ///   - includeHiddenPaths: 是否扫描隐藏路径（例如 `.claude/`）；默认开启
+    /// - Returns: 扫描到的全部 skills
     ///
-    /// Recursively traverse repository directory tree, find directories containing SKILL.md,
-    /// and parse metadata with SkillMDParser. Similar to Go's filepath.Walk.
+    /// 实现上会递归遍历 repository 目录树，查找 `SKILL.md`，并通过 `SkillMDParser` 解析 metadata。
     func scanSkillsInRepo(repoDir: URL, includeHiddenPaths: Bool = true) -> [DiscoveredSkill] {
         let fm = FileManager.default
         var discovered: [DiscoveredSkill] = []
         let repoDirPath = repoDir.standardizedFileURL.path
 
-        // enumerator recursively traverses directory tree (similar to Python's os.walk or Go's filepath.Walk)
-        // includingPropertiesForKeys prefetches file attributes for better performance
-        // Don't use .skipsHiddenFiles — some repos store skills under hidden directories
-        // like `.claude/skills/`, which would be skipped entirely by that option.
-        // Instead, we manually skip `.git` (the only hidden directory we must avoid).
+        // `enumerator` 会递归遍历整个目录树。
+        // `includingPropertiesForKeys` 可以预取文件属性，减少后续查询开销。
+        // 这里不能使用 `.skipsHiddenFiles`，因为有些 repo 会把 skill 放在 `.claude/skills/` 这类隐藏目录下。
+        // 因此当前策略是：保留隐藏目录扫描，但手动跳过 `.git`。
         guard let enumerator = fm.enumerator(
             at: repoDir,
             includingPropertiesForKeys: [.isDirectoryKey],
@@ -251,14 +242,13 @@ actor GitService {
             return []
         }
 
-        // Collect paths of all SKILL.md files, skipping .git directory
+        // 收集所有 `SKILL.md` 路径，并跳过 `.git` 目录。
         var skillMDURLs: [URL] = []
         while let fileURL = enumerator.nextObject() as? URL {
-            // Skip .git directory — it's large and never contains skills.
-            // Using lastPathComponent so we catch .git at any nesting level.
+            // 跳过 `.git` 目录：它体积大，而且不会包含真正的 skill。
+            // 这里使用 `lastPathComponent`，确保任意层级下的 `.git` 都能被识别。
             if fileURL.lastPathComponent == ".git" {
-                // skipDescendants() tells the enumerator to not recurse into this directory,
-                // similar to returning filepath.SkipDir in Go's filepath.Walk.
+                // `skipDescendants()` 会告诉 `enumerator` 不再继续深入这个目录。
                 enumerator.skipDescendants()
                 continue
             }
@@ -269,8 +259,7 @@ actor GitService {
                     if relative.hasPrefix("/") {
                         relative = String(relative.dropFirst())
                     }
-                    // Custom repos can disable hidden-path scan to avoid ambiguity from
-                    // duplicate mirrors under hidden directories.
+                    // custom repo 可以关闭 hidden-path 扫描，避免隐藏目录中的镜像副本带来歧义。
                     if !includeHiddenPaths && containsHiddenPathSegment(relative) {
                         continue
                     }
@@ -284,20 +273,20 @@ actor GitService {
             let skillDir = skillMDURL.deletingLastPathComponent()
             let skillName = skillDir.lastPathComponent
 
-            // Calculate path relative to repository root
-            // e.g. repoDir = /tmp/xxx/, skillDir = /tmp/xxx/skills/find-skills/
-            // → folderPath = "skills/find-skills"
+            // 计算相对于 repository 根目录的路径。
+            // 例如：`repoDir = /tmp/xxx/`，`skillDir = /tmp/xxx/skills/find-skills/`，
+            // 则 `folderPath = "skills/find-skills"`。
             let repoDirPath = repoDir.standardizedFileURL.path
             let skillDirPath = skillDir.standardizedFileURL.path
             let folderPath: String
             if skillDirPath.hasPrefix(repoDirPath) {
-                // dropFirst removes prefix path and leading "/"
+                // `dropFirst` 会去掉前缀路径。
                 var relative = String(skillDirPath.dropFirst(repoDirPath.count))
-                // Remove leading "/" if present
+                // 如果存在前导 `/`，就去掉。
                 if relative.hasPrefix("/") {
                     relative = String(relative.dropFirst())
                 }
-                // Remove trailing "/" if present
+                // 如果存在结尾 `/`，就去掉。
                 if relative.hasSuffix("/") {
                     relative = String(relative.dropLast())
                 }
@@ -310,7 +299,7 @@ actor GitService {
                 ? "SKILL.md"
                 : "\(folderPath)/SKILL.md"
 
-            // Parse SKILL.md content with SkillMDParser
+            // 用 `SkillMDParser` 解析 `SKILL.md` 内容。
             do {
                 let result = try SkillMDParser.parse(fileURL: skillMDURL)
                 discovered.append(DiscoveredSkill(
@@ -321,7 +310,7 @@ actor GitService {
                     markdownBody: result.markdownBody
                 ))
             } catch {
-                // Use directory name as fallback on parse failure, don't block entire scan
+                // 如果解析失败，就回退到目录名作为最小信息，不阻断整次扫描。
                 discovered.append(DiscoveredSkill(
                     id: skillName,
                     folderPath: folderPath,
@@ -332,8 +321,8 @@ actor GitService {
             }
         }
 
-        // Deduplicate by skill id. If duplicates exist (e.g. hidden mirror + normal path),
-        // prefer non-hidden and shallower path.
+        // 按 `skill id` 去重。
+        // 如果出现重复项（例如隐藏目录镜像 + 正常路径），优先保留非隐藏且层级更浅的路径。
         var uniqueByID: [String: DiscoveredSkill] = [:]
         for skill in discovered {
             if let existing = uniqueByID[skill.id] {
@@ -345,7 +334,7 @@ actor GitService {
             }
         }
 
-        // Sort by id with a folderPath tie-breaker for deterministic UI ordering.
+        // 最后按 `id` 排序；若 `id` 相同，则再用 `folderPath` 作为稳定的 tie-breaker。
         return uniqueByID.values.sorted {
             let lhsID = $0.id.lowercased()
             let rhsID = $1.id.lowercased()
@@ -360,7 +349,7 @@ actor GitService {
         relativePath.split(separator: "/").contains { $0.hasPrefix(".") }
     }
 
-    /// Pick the better candidate when multiple discovered entries share the same skill id.
+    /// 当多个扫描结果共享相同 `skill id` 时，选择更优的候选项。
     private func shouldPrefer(_ lhs: DiscoveredSkill, over rhs: DiscoveredSkill) -> Bool {
         let lhsHidden = containsHiddenPathComponent(lhs.folderPath)
         let rhsHidden = containsHiddenPathComponent(rhs.folderPath)
@@ -381,19 +370,18 @@ actor GitService {
         folderPath.split(separator: "/").contains { $0.hasPrefix(".") }
     }
 
-    /// Clean up temporary directory
-    /// Called after installation completes or is cancelled, frees disk space
+    /// 清理临时目录。
+    /// 在安装完成或取消后调用，用于释放磁盘空间。
     func cleanupTempDirectory(_ url: URL) {
         try? FileManager.default.removeItem(at: url)
     }
 
-    /// Pull latest changes for an already-cloned repository.
+    /// 对已 clone 的 repository 执行 `pull`，获取最新变更。
     ///
-    /// - Parameter repoDir: Local directory of the cloned repository (must contain a `.git` subdirectory)
-    /// - Throws: GitError.cloneFailed if `git pull` exits with a non-zero status
+    /// - Parameter repoDir: 已 clone repository 的本地目录（必须包含 `.git` 子目录）
+    /// - Throws: 当 `git pull` 以非零状态退出时抛出 `GitError.cloneFailed`
     ///
-    /// Equivalent to running `git pull` in the repository directory.
-    /// SSH authentication is handled transparently by the system's ssh-agent / ~/.ssh/config.
+    /// 效果上等价于在该目录下执行 `git pull`。
     func pull(repoDir: URL, httpAuthorization: String? = nil) async throws {
         var arguments: [String] = []
         if let httpAuthorization {
@@ -406,47 +394,44 @@ actor GitService {
         )
     }
 
-    // MARK: - URL Normalization (static methods, no actor isolation needed)
+    // MARK: - URL Normalization（纯函数，不需要 actor isolation）
 
-    /// Generate GitHub web URL from git repository URL
+    /// 根据 git repository URL 生成 GitHub web URL。
     ///
-    /// - Parameter sourceUrl: Git repository URL (e.g. "https://github.com/owner/repo.git")
-    /// - Returns: GitHub web URL (e.g. "https://github.com/owner/repo"), returns nil for non-GitHub URLs
+    /// - Parameter sourceUrl: git repository URL，例如 `https://github.com/owner/repo.git`
+    /// - Returns: GitHub web URL；如果不是 GitHub URL，则返回 `nil`
     ///
-    /// `nonisolated` means no actor isolation needed, as it's a pure function without accessing mutable state.
-    /// Similar to Java's static method, can be called on any thread without await.
+    /// 这里使用 `nonisolated`，因为它是纯函数，不依赖 actor 的可变状态。
     nonisolated static func githubWebURL(from sourceUrl: String) -> String? {
-        // Only handle GitHub URLs
+        // 这里只处理 GitHub URL。
         guard sourceUrl.lowercased().contains("github.com") else { return nil }
 
         var url = sourceUrl
-        // Remove .git suffix
+        // 去掉 `.git` 后缀。
         if url.hasSuffix(".git") {
             url = String(url.dropLast(4))
         }
-        // Remove trailing /
+        // 去掉结尾的 `/`。
         if url.hasSuffix("/") {
             url = String(url.dropLast())
         }
         return url
     }
 
-    /// Normalize repository URL input, supports multiple formats
+    /// 规范化用户输入的 repository URL，兼容多种输入格式。
     ///
-    /// Supported input formats:
-    /// - `owner/repo` (e.g. "vercel-labs/skills") → auto-completes to GitHub HTTPS URL
-    /// - `https://github.com/owner/repo` (full HTTPS URL)
-    /// - `https://github.com/owner/repo.git` (with .git suffix)
-    /// - `git@github.com:owner/repo.git` (SSH format — passed through unchanged)
-    /// - `git@gitlab.com:owner/repo.git` (GitLab SSH format — passed through unchanged)
+    /// 当前支持：
+    /// - `owner/repo`，自动补全为 GitHub HTTPS URL
+    /// - `https://github.com/owner/repo`
+    /// - `https://github.com/owner/repo.git`
+    /// - `git@github.com:owner/repo.git`
+    /// - `git@gitlab.com:owner/repo.git`
     ///
-    /// - Parameter input: User input repository address
-    /// - Returns: Tuple (full repoURL, source identifier for display)
-    /// - Throws: GitError.invalidRepoURL
+    /// - Parameter input: 用户输入的 repository 地址
+    /// - Returns: `(full repoURL, source)`
+    /// - Throws: `GitError.invalidRepoURL`
     ///
-    /// `nonisolated` keyword means this method doesn't need actor isolation protection,
-    /// because it's a pure function, not accessing any mutable state of the actor.
-    /// Similar to Java's static method — can be called on any thread without await.
+    /// 这里同样使用 `nonisolated`，因为它是纯函数，不依赖 actor 可变状态。
     nonisolated static func normalizeRepoURL(_ input: String) throws -> (repoURL: String, source: String) {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -454,20 +439,19 @@ actor GitService {
             throw GitError.invalidRepoURL(input)
         }
 
-        // Case 0: SSH URL format — git@hostname:org/repo.git
-        // Passes through unchanged; SSH auth is handled by the system's ssh-agent / ~/.ssh/config.
-        // Example: "git@github.com:org/repo.git" → source = "org/repo"
+        // Case 0：SSH URL，例如 `git@hostname:org/repo.git`。
+        // 这种格式会原样透传，SSH 认证由系统环境负责。
         if trimmed.lowercased().hasPrefix("git@") {
-            // Extract org/repo from the path after ":"
+            // 从 `:` 后面的路径里提取 `org/repo`。
             var source = trimmed
             if let colonIdx = source.firstIndex(of: ":") {
                 source = String(source[source.index(after: colonIdx)...])
             }
-            // Strip .git suffix for the display source
+            // 为展示用的 `source` 去掉 `.git` 后缀。
             if source.hasSuffix(".git") {
                 source = String(source.dropLast(4))
             }
-            // Ensure .git suffix on the clone URL (git requires it for some hosts)
+            // 确保 clone URL 以 `.git` 结尾。
             var repoURL = trimmed
             if !repoURL.hasSuffix(".git") {
                 repoURL += ".git"
@@ -475,28 +459,27 @@ actor GitService {
             return (repoURL: repoURL, source: source)
         }
 
-        // Case 1: Full HTTPS URL (starts with https://)
+        // Case 1：完整 HTTPS URL。
         if trimmed.lowercased().hasPrefix("https://") {
-            // Extract owner/repo from URL as source
-            // e.g. "https://github.com/vercel-labs/skills.git" → "vercel-labs/skills"
+            // 从 URL 中提取 `owner/repo` 作为展示用 `source`。
             var source = trimmed
-            // Remove "https://github.com/" prefix
+            // 去掉 `https://github.com/` 前缀。
             if let range = source.range(of: "https://github.com/", options: .caseInsensitive) {
                 source = String(source[range.upperBound...])
             }
-            // Remove .git suffix
+            // 去掉 `.git` 后缀。
             if source.hasSuffix(".git") {
                 source = String(source.dropLast(4))
             }
-            // Remove trailing /
+            // 去掉结尾的 `/`。
             if source.hasSuffix("/") {
                 source = String(source.dropLast())
             }
 
-            // Ensure repoURL ends with .git
+            // 确保 `repoURL` 最终以 `.git` 结尾。
             var repoURL = trimmed
             if !repoURL.hasSuffix(".git") {
-                // Remove trailing /
+                // 去掉结尾的 `/`。
                 if repoURL.hasSuffix("/") {
                     repoURL = String(repoURL.dropLast())
                 }
@@ -506,8 +489,8 @@ actor GitService {
             return (repoURL: repoURL, source: source)
         }
 
-        // Case 2: owner/repo format (e.g. "vercel-labs/skills")
-        // Validate format: must contain exactly one "/"
+        // Case 2：`owner/repo` 格式。
+        // 这里要求输入里必须且只能包含一个 `/`。
         let components = trimmed.split(separator: "/")
         guard components.count == 2,
               !components[0].isEmpty,
@@ -515,7 +498,7 @@ actor GitService {
             throw GitError.invalidRepoURL(input)
         }
 
-        // Remove possible .git suffix from repo name
+        // 去掉 repo 名里可能存在的 `.git` 后缀。
         var repoName = String(components[1])
         if repoName.hasSuffix(".git") {
             repoName = String(repoName.dropLast(4))
@@ -528,16 +511,15 @@ actor GitService {
 
     // MARK: - Private Methods
 
-    /// Execute git command and return stdout output
+    /// 执行 git 命令，并返回 `stdout` 输出。
     ///
     /// - Parameters:
-    ///   - arguments: Git command arguments (excluding "git" itself)
-    ///   - workingDirectory: Working directory (nil means use default directory)
-    /// - Returns: Command's stdout output
-    /// - Throws: GitError
+    ///   - arguments: git 参数列表（不包含 `git` 本身）
+    ///   - workingDirectory: 工作目录；为 `nil` 时使用默认目录
+    /// - Returns: 命令的 `stdout` 内容
+    /// - Throws: `GitError`
     ///
-    /// Uses Process API (similar to Java's ProcessBuilder or Go's exec.Command)
-    /// Reuses Process execution pattern verified in AgentDetector
+    /// 实现上使用 `Process API`，并复用了 `AgentDetector` 已验证过的执行模式。
     private func runGitCommand(arguments: [String], workingDirectory: URL?) async throws -> String {
         // First find git's full path (via which git)
         let gitPath = try await findGitPath()
@@ -546,8 +528,7 @@ actor GitService {
         process.executableURL = URL(fileURLWithPath: gitPath)
         process.arguments = arguments
 
-        // Force non-interactive behavior so git/ssh fails fast with an error
-        // instead of waiting for invisible prompts in a GUI app.
+        // 强制启用 non-interactive 行为，避免 git / ssh 在 GUI app 中等待看不见的交互提示。
         var env = ProcessInfo.processInfo.environment
         env["GIT_TERMINAL_PROMPT"] = "0"
         env["GCM_INTERACTIVE"] = "Never"
@@ -556,12 +537,12 @@ actor GitService {
         }
         process.environment = env
 
-        // Set working directory (if specified)
+        // 如果传入了工作目录，就在这里设置。
         if let workingDirectory {
             process.currentDirectoryURL = workingDirectory
         }
 
-        // Capture output to files instead of pipes to avoid deadlocks when command output is large.
+        // 使用文件而不是 pipe 捕获输出，避免输出过大时出现死锁。
         let fm = FileManager.default
         let captureDir = fm.temporaryDirectory
             .appendingPathComponent("SkillsMaster-git-output-\(UUID().uuidString)")
@@ -623,7 +604,7 @@ actor GitService {
         let stdout = String(data: stdoutData, encoding: .utf8) ?? ""
         let stderr = String(data: stderrData, encoding: .utf8) ?? ""
 
-        // Non-zero exit code means command execution failed
+        // 非零退出码表示命令执行失败。
         guard process.terminationStatus == 0 else {
             let errorMessage = stderr.isEmpty ? stdout : stderr
             let trimmed = errorMessage.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -638,8 +619,8 @@ actor GitService {
         return stdout
     }
 
-    /// Wait for process exit without blocking async contexts.
-    /// Returns false when timeout is reached before process exits.
+    /// 等待进程退出，同时避免阻塞 async 上下文。
+    /// 如果在超时时间内进程仍未退出，则返回 `false`。
     private func waitForProcessExit(_ process: Process, timeoutSeconds: TimeInterval) async -> Bool {
         await withTaskGroup(of: Bool.self) { group in
             group.addTask {
@@ -663,7 +644,7 @@ actor GitService {
         }
     }
 
-    /// Redact sensitive auth values before composing human-readable logs/errors.
+    /// 在拼装可读日志 / 错误信息之前，先对敏感认证参数做脱敏。
     private func sanitizeArgumentsForLogging(_ arguments: [String]) -> [String] {
         arguments.map { arg in
             if arg.hasPrefix("http.extraHeader=Authorization:") {
@@ -673,10 +654,10 @@ actor GitService {
         }
     }
 
-    /// Find full path of git executable
-    /// Check common paths first to avoid running which command every time
+    /// 查找 git 可执行文件的完整路径。
+    /// 会先检查常见安装路径，避免每次都额外执行 `which`。
     private func findGitPath() async throws -> String {
-        // Common git installation paths
+        // 常见的 git 安装路径。
         let commonPaths = [
             "/usr/bin/git",
             "/usr/local/bin/git",
@@ -689,7 +670,7 @@ actor GitService {
             }
         }
 
-        // If common paths not found, find via which command
+        // 如果常见路径都不存在，再退化为执行 `which`。
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/which")
         process.arguments = ["git"]

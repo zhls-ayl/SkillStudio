@@ -141,9 +141,9 @@ struct SkillDetailView: View {
                     .foregroundStyle(.tertiary)
                     .textSelection(.enabled)
 
-                // Copy path button
-                // NSPasteboard is macOS clipboard API, equivalent to iOS UIPasteboard
-                // .generalPasteboard gets the system general clipboard (source of user's Cmd+V paste)
+                // 复制路径按钮。
+                // `NSPasteboard` 是 macOS 的剪贴板 API，概念上类似 iOS 的 `UIPasteboard`。
+                // `.general` 表示系统级通用剪贴板，也就是用户 `Cmd+V` 实际读取的来源。
                 Button {
                     let pasteboard = NSPasteboard.general
                     // 调用 `setString` 之前先执行 `clearContents()`，清掉旧内容。
@@ -176,7 +176,7 @@ struct SkillDetailView: View {
         }
     }
 
-    /// Agent assignment 区域。 (F06)
+    /// Agent assignment 区域（F06）。
     @ViewBuilder
     private func agentAssignmentSection(_ skill: Skill) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -236,14 +236,14 @@ struct SkillDetailView: View {
                 // `@Bindable` 让 `@Observable` 对象的属性也能支持 `$` 语法。
                 TextField("owner/repo", text: $viewModel.repoURLInput)
                     .textFieldStyle(.roundedBorder)
-                    // .onSubmit triggers when user presses return (similar to HTML input's onKeyDown Enter)
+                    // `.onSubmit` 会在用户按下回车时触发。
                     .onSubmit {
                         Task { await viewModel.linkToRepository(skill: skill) }
                     }
                     .disabled(isLinking)
 
                 if isLinking {
-                    // Linking: show ProgressView (spinning indicator)
+                    // Linking 中：显示 `ProgressView` 作为 loading 指示器。
                     ProgressView()
                         .controlSize(.small)
                     Text("Linking...")
@@ -257,7 +257,7 @@ struct SkillDetailView: View {
                 }
             }
 
-            // Error message
+            // 错误信息。
             if let error = linkError {
                 HStack(spacing: 4) {
                     Image(systemName: "exclamationmark.triangle")
@@ -270,11 +270,11 @@ struct SkillDetailView: View {
         }
     }
 
-    /// Lock file info section
+    /// lock file 信息区域。
     @ViewBuilder
     private func lockFileSection(_ skill: Skill, _ lockEntry: LockEntry) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            // 标题行：Package Info + 更新检查按钮
+            // 标题行：`Package Info` + 更新检查按钮。
             HStack {
                 Text("Package Info")
                     .font(.headline)
@@ -285,7 +285,7 @@ struct SkillDetailView: View {
                 updateStatusView(skill)
             }
 
-            // Grid is macOS 14+ grid layout (similar to HTML CSS Grid)
+            // `Grid` 是 macOS 14+ 提供的网格布局，概念上类似 HTML 的 CSS Grid。
             Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 6) {
                 GridRow {
                     Text("Source").foregroundStyle(.secondary)
@@ -293,7 +293,7 @@ struct SkillDetailView: View {
                 }
                 GridRow {
                     Text("Repository").foregroundStyle(.secondary)
-                    // If sourceUrl is valid URL, show as clickable link, opens in system default browser when clicked
+                    // 如果 `sourceUrl` 是合法 URL，就展示为可点击链接，并在点击后交给系统默认浏览器打开。
                     if let url = URL(string: lockEntry.sourceUrl),
                        url.scheme != nil {
                         Link(lockEntry.sourceUrl, destination: url)
@@ -302,8 +302,8 @@ struct SkillDetailView: View {
                         Text(lockEntry.sourceUrl).textSelection(.enabled)
                     }
                 }
-                // Prefer displaying commit hash (can be viewed directly on GitHub),
-                // fallback to tree hash if not present (old skill not backfilled)
+                // 优先展示 commit hash（可直接映射到 GitHub commit 页面），
+                // 如果没有 commit hash，再回退到 tree hash（通常表示旧 skill 尚未完成 backfill）。
                 GridRow {
                     if let commitHash = skill.localCommitHash {
                         Text("Commit").foregroundStyle(.secondary)
@@ -330,18 +330,18 @@ struct SkillDetailView: View {
         }
     }
 
-    /// F12: Update status indicator view
+    /// F12：更新状态指示区域。
     ///
-    /// Displays different UI based on viewModel's update check status:
-    /// - Checking: ProgressView + "Checking..."
-    /// - Has update: orange label + "Update" button
-    /// - Updating: ProgressView + "Updating..."
-    /// - Up to date: green checkmark (auto-disappears after 2 seconds)
-    /// - Default: check button
+    /// 会根据 `viewModel` 当前的更新状态展示不同 UI：
+    /// - `Checking`：`ProgressView` + `Checking...`
+    /// - `Has update`：橙色提示 + `Update` 按钮
+    /// - `Updating`：`ProgressView` + `Updating...`
+    /// - `Up to date`：绿色勾选（2 秒后自动消失）
+    /// - 默认状态：展示检查按钮
     @ViewBuilder
     private func updateStatusView(_ skill: Skill) -> some View {
         if viewModel.isCheckingUpdate {
-            // Checking for updates
+            // 正在检查更新。
             HStack(spacing: 4) {
                 ProgressView()
                     .controlSize(.small)
@@ -350,7 +350,7 @@ struct SkillDetailView: View {
                     .foregroundStyle(.secondary)
             }
         } else if viewModel.isUpdating {
-            // Performing update
+            // 正在执行更新。
             HStack(spacing: 4) {
                 ProgressView()
                     .controlSize(.small)
@@ -359,7 +359,7 @@ struct SkillDetailView: View {
                     .foregroundStyle(.secondary)
             }
         } else if skill.hasUpdate {
-            // Has available update: show hash comparison + GitHub link + Update button
+            // 检测到可用更新：展示 hash 对比、GitHub 链接和 `Update` 按钮。
             VStack(alignment: .trailing, spacing: 4) {
                 HStack(spacing: 8) {
                     Label("Update Available", systemImage: "arrow.up.circle.fill")
@@ -372,12 +372,12 @@ struct SkillDetailView: View {
                     .controlSize(.small)
                 }
 
-                // Commit hash comparison row + GitHub link
-                // Displays localHash → remoteHash (7-character short format, consistent with git log --oneline)
+                // commit hash 对比行 + GitHub 链接。
+                // 这里展示 `localHash → remoteHash` 的 7 位短哈希格式，与 `git log --oneline` 保持一致。
                 updateDetailRow(skill)
             }
         } else if viewModel.showUpToDate {
-            // Already up to date (auto-disappears after 2 seconds)
+            // 已是最新版本（2 秒后自动消失）。
             Label("Up to Date", systemImage: "checkmark.circle.fill")
                 .font(.caption)
                 .foregroundStyle(.green)
@@ -392,7 +392,7 @@ struct SkillDetailView: View {
                     .lineLimit(1)
             }
         } else {
-            // Default state: show check button
+            // 默认状态：展示检查按钮。
             Button {
                 Task { await viewModel.checkForUpdate(skill: skill) }
             } label: {
@@ -403,41 +403,41 @@ struct SkillDetailView: View {
         }
     }
 
-    /// F12: Update detail row — displays commit hash comparison and GitHub link
+    /// F12：更新详情行，用于展示 commit hash 对比和 GitHub 链接。
     ///
-    /// Layout: `abc1234 → def5678   View changes on GitHub ↗`
-    /// - Hash comparison: local commit hash → remote commit hash (7-character short format, consistent with git log --oneline)
-    /// - GitHub link: opens compare page in browser when clicked
+    /// 布局大致为：`abc1234 → def5678   View changes on GitHub ↗`
+    /// - hash 对比：`local commit hash → remote commit hash`
+    /// - GitHub 链接：点击后在浏览器中打开 compare 页面
     @ViewBuilder
     private func updateDetailRow(_ skill: Skill) -> some View {
         HStack(spacing: 6) {
-            // Take first 7 characters short format (consistent with git log --oneline)
-            // prefix(_:) returns Substring, needs to be wrapped in String()
+            // 取前 7 位作为短哈希格式，与 `git log --oneline` 保持一致。
+            // `prefix(_:)` 返回的是 `Substring`，因此这里需要再包一层 `String()`。
             let localShort = skill.localCommitHash.map { String($0.prefix(7)) }
             let remoteShort = skill.remoteCommitHash.map { String($0.prefix(7)) }
 
             if let localShort, let remoteShort {
-                // Have both commit hashes: show comparison `abc1234 → def5678`
+                // 本地和远端 commit hash 都存在时，展示 `abc1234 → def5678` 对比。
                 Text("\(localShort) → \(remoteShort)")
                     .font(.system(.caption2, design: .monospaced))
                     .foregroundStyle(.secondary)
             } else if let remoteShort {
-                // Only have remote commit hash (fallback when old skill backfill failed)
+                // 只有远端 commit hash 时，走降级展示（通常表示旧 skill 的 backfill 没成功）。
                 Text("→ \(remoteShort)")
                     .font(.system(.caption2, design: .monospaced))
                     .foregroundStyle(.secondary)
             }
 
-            // GitHub compare link button
+            // GitHub compare 链接按钮。
             if let url = githubCompareURL(skill) {
-                // Use link-style text button, opens in browser when clicked
-                // NSWorkspace.shared.open() is the standard way to open URLs on macOS
+                // 使用 link 风格按钮，点击后在浏览器中打开。
+                // `NSWorkspace.shared.open()` 是 macOS 中打开 URL 的标准方式。
                 Button {
                     NSWorkspace.shared.open(url)
                 } label: {
                     HStack(spacing: 2) {
                         Text("View changes on GitHub")
-                        // arrow.up.right is external link icon (↗), indicates will jump to browser
+                        // `arrow.up.right` 是常见的 external link 图标（↗）。
                         Image(systemName: "arrow.up.right")
                     }
                     .font(.caption2)
@@ -449,13 +449,11 @@ struct SkillDetailView: View {
 
     // MARK: - Helper Methods
 
-    /// Generate GitHub compare URL
+    /// 生成 GitHub compare URL。
     ///
-    /// Generates GitHub comparison page URL based on lockEntry.sourceUrl and commit hash:
-    /// - Have both commit hashes: `https://github.com/owner/repo/compare/<local>...<remote>`
-    ///   GitHub compare view shows all file differences between two commits
-    /// - Only have remote commit hash: `https://github.com/owner/repo/commit/<remote>`
-    ///   Shows detail page for the remote latest commit
+    /// 这里会基于 `lockEntry.sourceUrl` 和 commit hash 生成对应页面：
+    /// - 如果本地与远端 hash 都存在：生成 `compare/<local>...<remote>` 链接
+    /// - 如果只有远端 hash：生成 `commit/<remote>` 链接
     private func githubCompareURL(_ skill: Skill) -> URL? {
         guard let sourceUrl = skill.lockEntry?.sourceUrl,
               let baseURL = GitService.githubWebURL(from: sourceUrl),
@@ -463,14 +461,13 @@ struct SkillDetailView: View {
             return nil
         }
 
-        // If have local commit hash, generate compare URL to show differences between two commits
-        // GitHub compare URL format: compare/<base>...<head>
-        // Where `...` indicates three-dot diff (shows changes in head relative to base)
+        // 如果存在本地 commit hash，就生成 compare URL 来查看两次提交之间的差异。
+        // GitHub compare URL 的格式是 `compare/<base>...<head>`。
         if let localHash = skill.localCommitHash {
             return URL(string: "\(baseURL)/compare/\(localHash)...\(remoteHash)")
         }
 
-        // No local commit hash (backfill not successful), only link to remote commit page
+        // 如果没有本地 commit hash（通常表示 backfill 未成功），就退化为只打开远端 commit 页面。
         return URL(string: "\(baseURL)/commit/\(remoteHash)")
     }
 }
