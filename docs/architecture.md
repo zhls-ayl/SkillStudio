@@ -1,0 +1,69 @@
+# 架构与实现边界
+
+## 系统定位
+SkillsMaster 是一个基于 SwiftUI 的 macOS 应用，用于管理多代理 Skills 的本地生命周期。它不是通用包管理器，也不是云端服务；核心职责是把本地目录、symbolic link、lock file、Git 来源与 UI 操作统一起来。
+
+## 实现结构
+- `Sources/SkillsMaster/App/`：应用入口、主题应用、启动激活
+- `Sources/SkillsMaster/Views/`：`NavigationSplitView` 三栏 UI 与可复用组件
+- `Sources/SkillsMaster/ViewModels/`：页面状态与交互编排
+- `Sources/SkillsMaster/Services/`：扫描、解析、lock file、Git、仓库、更新、迁移、文件监控
+- `Sources/SkillsMaster/Models/`：Agent、Skill、Repository、LockEntry 等核心模型
+- `Sources/SkillsMaster/Utilities/`：常量、扩展、版本比较等纯工具
+
+## 启动与刷新主流程
+1. `SkillsMasterApp` 注入全局 `SkillManager`
+2. `ContentView` 首次出现时执行迁移：`MigrationManager.migrateIfNeeded()`
+3. 随后调用 `SkillManager.refresh()`
+4. `refresh()` 负责加载仓库配置、检测已安装代理、扫描 Skills、关联lock file、触发自定义仓库后台同步
+5. `FileSystemWatcher` 监听目录变化，变更后再次触发 `refresh()`
+
+## 数据与存储约定
+当前实现使用以下本地路径：
+- canonical 存储目录：`~/.skillsmaster/skills`
+- lock file：`~/.agents/.skill-lock.json`
+- 自定义仓库克隆目录：`~/.skillsmaster/repos`
+- 自定义仓库配置：`~/.skillsmaster/.skillsmaster-repos.json`
+- 提交哈希缓存：`~/.skillsmaster/.skillsmaster-cache.json`（迁移后私有缓存）
+
+其中需要特别注意：
+- `~/.skillsmaster/skills` 是 SkillsMaster 自己维护的canonical 目录
+- `~/.agents/.skill-lock.json` 仍保留在旧位置，以兼容外部工具
+- 扫描阶段仍会兼容读取 `~/.agents/skills`，用于迁移期与跨代理读取场景
+
+## 代理与兼容策略
+`AgentType` 定义了当前受支持代理、检测命令、主目录与附加可读目录。不是所有代理都只读取自己的目录：
+- Codex、Gemini CLI 仍兼容读取 `~/.agents/skills`
+- OpenCode、Copilot、Cursor 等存在跨目录读取或继承关系
+- SkillsMaster 在 UI 中区分“直接安装”和“继承安装”，避免误删或误切换
+
+处理代理相关问题时，应优先查看：
+- `Sources/SkillsMaster/Models/AgentType.swift`
+- `Sources/SkillsMaster/Services/SkillScanner.swift`
+- `Sources/SkillsMaster/Services/SymlinkManager.swift`
+
+## 仓库与安装链路
+当前安装来源分为三类：
+- 注册表技能：通过 `SkillRegistryService` 获取索引，再进入安装流程
+- 远程仓库安装：通过 `GitService` 克隆 / 扫描 / 拷贝到canonical 目录
+- 自定义仓库：由 `RepositoryManager` 管理配置与同步，由 `RepositoryBrowserViewModel` 驱动安装
+
+统一安装后都会落到canonical 目录，再由 `SymlinkManager` 处理代理侧链接，并由 `LockFileManager` 更新lock file。
+
+## 更新链路
+- 技能更新：`GitService` + `SkillContentFetcher` + `CommitHashCache`
+- 应用自更新：`UpdateChecker` 读取 GitHub Release，下载 zip 并替换 `.app`
+- 发布打包：`scripts/package-app.sh`、`scripts/release.sh`、`.github/workflows/release.yml`
+
+## high-risk 区域
+以下区域文档、代码和测试必须同步：
+- `MigrationManager.swift`：历史路径迁移与兼容
+- `LockFileManager.swift`：lock file格式与原子写入
+- `SymlinkManager.swift`：symbolic link创建、解析、删除与继承判断
+- `RepositoryManager.swift` / `RepositoryCredentialStore.swift`：仓库配置与凭据存储
+- `UpdateChecker.swift`：应用下载、替换、重启流程
+- `scripts/` 与 `.github/workflows/`：打包、发布、Homebrew 自动更新
+
+## 文档边界
+本文件只回答“系统如何工作、哪些路径和链路是权威实现”。
+开发命令与提交规则见 `docs/development.md`；发布流程见 `docs/release.md`；能力边界见 `docs/roadmap.md`。

@@ -1,117 +1,45 @@
-<p align="center">
-  <img src="Assets/AppIcon2.svg" width="200" alt="SkillsMaster App Icon" />
-</p>
+# SkillsMaster
 
-<h1 align="center">SkillsMaster</h1>
+SkillsMaster 是一个 macOS 原生应用，用统一的图形界面管理多种 AI 编程代理的 Skills。它聚焦于 **扫描、展示、安装、编辑、更新、同步**，并把多代理目录、symbolic link、lock file 与仓库来源收敛到一套可维护的工程实现中。
 
-<p align="center">
-  <em>可视化管理 AI 编程代理 Skills 的原生 macOS 应用</em>
-</p>
+![SkillsMaster 界面截图](docs/screenshots/skill-detail.png)
 
-<p align="center">
-  <a href="https://github.com/zhls-ayl/SkillsMaster/actions/workflows/ci.yml"><img src="https://github.com/zhls-ayl/SkillsMaster/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
-  <a href="https://github.com/zhls-ayl/SkillsMaster/releases/latest"><img src="https://img.shields.io/github/v/release/zhls-ayl/SkillsMaster?include_prereleases" alt="Release" /></a>
-  <img src="https://img.shields.io/badge/macOS-14%2B-blue" alt="macOS" />
-  <img src="https://img.shields.io/badge/Swift-5.9%2B-orange" alt="Swift" />
-  <img src="https://img.shields.io/badge/license-MIT-green" alt="License" />
-</p>
+## 当前能力概览
+- 扫描本地 Skills，并按代理、作用域、安装状态统一展示
+- 解析与编辑 `SKILL.md`（YAML frontmatter + Markdown 正文）
+- 从远程仓库、注册表或自定义仓库安装 Skills
+- 管理代理分配、symbolic link、lock file 与更新检查
+- 监控文件系统变更，并在 UI 中自动刷新
+- 支持应用主题切换、自身版本检查与 release 打包链路
 
----
+## 环境要求
+- macOS 14+
+- Xcode 15+
+- Swift 5.9+
 
-## 项目说明
-
-**SkillsMaster** 是一款 macOS 原生桌面应用，提供统一的 GUI 界面来管理多个 AI 编程代理的 Skills。无需手动编辑文件、管理符号链接或解析 YAML。
-
-本项目基于 [SkillDeck](https://github.com/crossoverJie/SkillDeck) 重构维护，感谢原作者 [crossoverJie](https://github.com/crossoverJie) 的优秀工作。
-
-## 功能特性
-
-- **多代理支持** — Claude Code、Codex、Gemini CLI、GitHub Copilot、OpenCode、Antigravity、Cursor、Kiro CLI、CodeBuddy、OpenClaw、Trae
-- **注册表浏览** — 浏览 [skills.sh](https://skills.sh) 排行榜（全部 / 趋势 / 热门），搜索并一键安装
-- **统一仪表板** — 三栏式原生 macOS 视图，一览所有已安装技能
-- **主题切换** — 在设置页可选 System / Light / Dark，全局窗口统一生效并自动持久化
-- **一键安装** — 从 GitHub 克隆，自动创建符号链接并更新锁文件
-- **更新检查** — 检测远程变更，一键拉取更新
-- **SKILL.md 编辑器** — 分栏式编辑器，表单 + Markdown 实时预览
-- **代理分配** — 通过开关切换技能的代理安装状态，自动管理符号链接
-- **文件系统监控** — 自动感知 CLI 端变更，即时同步
-
-> 完整功能列表与路线图请参阅 [docs/FEATURES.md](docs/FEATURES.md)
-
-## 安装
-
-### Homebrew（推荐）
-
+## 常用命令
 ```bash
-brew tap zhls-ayl/skillsmaster && brew install --cask skillsmaster
-```
-
-### 下载 Release
-
-从 [GitHub Releases](https://github.com/zhls-ayl/SkillsMaster/releases) 下载最新通用二进制：
-
-1. 下载 `SkillsMaster-vX.Y.Z-universal.zip`
-2. 解压后将 `SkillsMaster.app` 移至 `/Applications/`
-3. 首次启动时需要解除 macOS 安全限制：
-   ```bash
-   xattr -cr /Applications/SkillsMaster.app
-   ```
-   或右键点击应用 → 打开 → 在弹窗中点击"打开"
-
-### 从源码构建
-
-需要 macOS 14.0+ (Sonoma)、Xcode 15.0+、Swift 5.9+。
-
-```bash
-git clone https://github.com/zhls-ayl/SkillsMaster.git
-cd SkillsMaster
-./run    # 自动处理目录迁移后常见的 Swift 缓存问题
-
-# 或在 Xcode 中打开
-open Package.swift    # 按 Cmd+R 运行
-```
-
-运行测试：
-
-```bash
+swift build
 swift test
+./run
+./scripts/package-app.sh --version 1.2.3 --zip
 ```
 
-## 支持的代理
+## 代码结构概览
+- `Sources/SkillsMaster/`：应用源码
+- `Tests/SkillsMasterTests/`：单元测试
+- `scripts/`：打包、发布与图标相关脚本
+- `docs/`：工程文档
+- `.github/workflows/`：CI / Release 自动化
 
-| 代理 | Skills 目录 | 检测方式 | Skills 读取优先级 |
-|------|------------|---------|------------------|
-| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | `~/.claude/skills/` | `claude` 二进制 + 配置目录 | 仅自有目录 |
-| [Codex](https://github.com/openai/codex) | `~/.codex/skills/` | `codex` 二进制 | 自有 → `~/.agents/skills/` |
-| [Gemini CLI](https://github.com/google-gemini/gemini-cli) | `~/.gemini/skills/` | `gemini` 二进制 + 配置目录 | 仅自有目录 |
-| [GitHub Copilot](https://docs.github.com/en/copilot/using-github-copilot/using-github-copilot-in-the-command-line) | `~/.copilot/skills/` | `gh` 二进制 | 自有 → `~/.claude/skills/` |
-| [OpenCode](https://opencode.ai) | `~/.config/opencode/skills/` | `opencode` 二进制 | 自有 → `~/.claude/skills/` → `~/.agents/skills/` |
-| [Antigravity](https://antigravity.google) | `~/.gemini/antigravity/skills/` | `antigravity` 二进制 | 仅自有目录 |
-| [Cursor](https://cursor.com) | `~/.cursor/skills/` | `cursor` 二进制 | 自有 → `~/.claude/skills/` |
-| [Kiro CLI](https://kiro.dev) | `~/.kiro/skills/` | `kiro` 二进制 | 仅自有目录 |
-| [CodeBuddy](https://www.codebuddy.ai) | `~/.codebuddy/skills/` | `codebuddy` 二进制 | 仅自有目录 |
-| [OpenClaw](https://openclaw.ai) | `~/.openclaw/skills/` | `openclaw` 二进制 | 仅自有目录 |
-| [Trae](https://trae.ai) | `~/.trae/skills/` | `trae` 二进制 | 仅自有目录 |
+## 文档导航入口
+- `docs/README.md`：文档总览
+- `docs/architecture.md`：架构、路径、数据流与风险点
+- `docs/development.md`：开发工作流、测试与文档更新要求
+- `docs/release.md`：打包、发布、GitHub Actions、Homebrew
+- `docs/roadmap.md`：当前能力边界与后续方向
 
-## 架构
-
-采用 MVVM + `@Observable`（macOS 14+）架构。文件系统即数据库 — Skills 是包含 `SKILL.md` 文件的目录。Services 使用 Swift `actor` 确保线程安全的文件系统访问。
-
-```
-Views → ViewModels (@Observable) → SkillManager → Services (actor)
-```
-
-> 完整架构指南与开发设置请参阅 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
-
-## 贡献指南
-
-1. Fork 本仓库
-2. 创建功能分支 (`git checkout -b feat/my-feature`)
-3. 运行测试 (`swift test`)
-4. 提交 Pull Request
-
-> 详细的开发环境搭建与编码规范请参阅 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
-
-## 许可证
-
-[MIT](LICENSE)
+## 开发原则与约束
+- 文档必须反映当前实现，不能把过时设计继续当成事实。
+- 修改代码后优先补测试；修改行为后同步补文档。
+- 涉及路径迁移、仓库同步、锁文件、发布脚本时，按高风险改动处理。
