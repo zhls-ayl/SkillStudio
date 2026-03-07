@@ -2,8 +2,6 @@
 
 SkillsMaster 是一个面向 macOS 的原生应用，用统一的图形界面管理多种 AI 编程代理的 Skills。它聚焦于 **扫描、展示、安装、编辑、更新、同步**，把本地目录、symbolic link、lock file 与 Repository 来源整合成一套可维护的工作流。
 
-![SkillsMaster 界面截图](docs/screenshots/skill-detail.png)
-
 ## 它解决什么问题
 如果你同时使用多个 AI 编程代理，通常会遇到这些问题：
 - Skills 分散在不同目录，难以统一查看
@@ -56,16 +54,12 @@ swift test
 - `docs/`：架构、开发、发布与能力边界文档
 - `.github/workflows/`：CI / Release workflow
 
-## 文档入口
-- `docs/README.md`：文档总览
-- `docs/architecture.md`：架构、路径、数据流与高风险区域
-- `docs/development.md`：开发工作流、测试与文档更新要求
-- `docs/release.md`：打包、发布、GitHub Actions、Homebrew
-- `docs/roadmap.md`：当前能力边界与未实现项
+## 文档分工
+- `README.md`：回答“这是什么、适合谁、如何快速开始”
+- `docs/Index.md`：回答“详细文档在哪里、应该先读哪篇、改动后该更新哪篇”
+- `AGENTS.md`：回答“协作时按什么原则执行、哪些改动要先确认、如何验证与汇报”
 
-## 开发约束
-- 文档必须反映当前实现，不能把过时设计继续当成事实
-- 修改代码后优先补测试；修改行为后同步补文档
-- 涉及路径迁移、仓库同步、lock file、Release 脚本时，按高风险改动处理
+如果你准备参与开发，先读 `docs/Index.md`；如果你准备在仓库里执行修改，再读 `AGENTS.md`。
 
-如果你准备参与开发，建议先阅读 `AGENTS.md` 与 `docs/README.md`。
+## 界面预览
+![SkillsMaster 界面截图](docs/screenshots/skill-detail.png)
