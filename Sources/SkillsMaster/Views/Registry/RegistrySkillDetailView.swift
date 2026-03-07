@@ -18,10 +18,10 @@ struct RegistrySkillDetailView: View {
     let skill: RegistrySkill
 
     /// Whether this skill is already installed locally
-    let is安装ed: Bool
+    let isInstalled: Bool
 
     /// Closure called when user clicks the "安装" button
-    let on安装: () -> Void
+    let onInstall: () -> Void
 
     /// Reference to the RegistryBrowserViewModel for content-loading state
     ///
@@ -83,7 +83,7 @@ struct RegistrySkillDetailView: View {
                     .textSelection(.enabled)
 
                 // "安装ed" badge — same visual style as Skill安装View and RegistrySkillRowView
-                if is安装ed {
+                if isInstalled {
                     Text("安装ed")
                         .font(.caption)
                         .padding(.horizontal, 8)
@@ -136,7 +136,7 @@ struct RegistrySkillDetailView: View {
                     Text("安装s").foregroundStyle(.secondary)
                     HStack(spacing: 8) {
                         // Show both formatted and exact count
-                        Text(skill.formatted安装s)
+                        Text(skill.formattedInstalls)
                             .fontWeight(.medium)
                         Text("(\(skill.installs))")
                             .foregroundStyle(.tertiary)
@@ -236,14 +236,14 @@ struct RegistrySkillDetailView: View {
             HStack(spacing: 12) {
                 // 安装 button — triggers the install flow via the parent's on安装 callback
                 Button {
-                    on安装()
+                    onInstall()
                 } label: {
                     Label("安装 Skill", systemImage: "arrow.down.circle")
                 }
                 // .borderedProminent gives the button a filled, prominent appearance
                 // This is the macOS equivalent of a "primary" button
                 .buttonStyle(.borderedProminent)
-                .disabled(is安装ed)
+                .disabled(isInstalled)
 
                 // Open on skills.sh — opens the skill's detail page in the browser
                 // URL format: https://skills.sh/{source}/{skillId}

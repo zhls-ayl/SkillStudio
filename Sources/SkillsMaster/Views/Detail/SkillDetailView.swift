@@ -218,7 +218,7 @@ struct SkillDetailView: View {
         // 先把 `@Observable` 属性读到本地变量里，避免在深层 `ViewBuilder` 中多次访问时
         // 触发 `AttributeGraph` 的依赖环。
         // 本地变量只会建立一次依赖追踪，可以降低循环依赖出现的概率。
-        let is关联ing = viewModel.is关联ing
+        let isLinking = viewModel.isLinking
         let linkError = viewModel.linkError
         let inputIsEmpty = viewModel.repoURLInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 
@@ -240,9 +240,9 @@ struct SkillDetailView: View {
                     .onSubmit {
                         Task { await viewModel.linkToRepository(skill: skill) }
                     }
-                    .disabled(is关联ing)
+                    .disabled(isLinking)
 
-                if is关联ing {
+                if isLinking {
                     // 关联ing 中：显示 `ProgressView` 作为 loading 指示器。
                     ProgressView()
                         .controlSize(.small)
@@ -296,7 +296,7 @@ struct SkillDetailView: View {
                     // 如果 `sourceUrl` 是合法 URL，就展示为可点击链接，并在点击后交给系统默认浏览器打开。
                     if let url = URL(string: lockEntry.sourceUrl),
                        url.scheme != nil {
-                        关联(lockEntry.sourceUrl, destination: url)
+                        Link(lockEntry.sourceUrl, destination: url)
                             .textSelection(.enabled)
                     } else {
                         Text(lockEntry.sourceUrl).textSelection(.enabled)
@@ -322,7 +322,7 @@ struct SkillDetailView: View {
                     Text(lockEntry.installedAt.formattedDate)
                 }
                 GridRow {
-                    Text("更新d").foregroundStyle(.secondary)
+                    Text("Updated").foregroundStyle(.secondary)
                     Text(lockEntry.updatedAt.formattedDate)
                 }
             }
@@ -340,7 +340,7 @@ struct SkillDetailView: View {
     /// - 默认状态：展示检查按钮
     @ViewBuilder
     private func updateStatusView(_ skill: Skill) -> some View {
-        if viewModel.isChecking更新 {
+        if viewModel.isCheckingUpdate {
             // 正在检查更新。
             HStack(spacing: 4) {
                 ProgressView()
@@ -358,7 +358,7 @@ struct SkillDetailView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-        } else if skill.has更新 {
+        } else if skill.hasUpdate {
             // 检测到可用更新：展示 hash 对比、GitHub 链接和 `更新` 按钮。
             VStack(alignment: .trailing, spacing: 4) {
                 HStack(spacing: 8) {
@@ -394,7 +394,7 @@ struct SkillDetailView: View {
         } else {
             // 默认状态：展示检查按钮。
             Button {
-                Task { await viewModel.checkFor更新(skill: skill) }
+                Task { await viewModel.checkForUpdate(skill: skill) }
             } label: {
                 Image(systemName: "arrow.triangle.2.circlepath")
             }

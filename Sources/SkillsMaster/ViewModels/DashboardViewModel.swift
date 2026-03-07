@@ -44,12 +44,12 @@ final class DashboardViewModel {
         }
 
         /// SF Symbols icon name: ascending uses up arrow, descending uses down arrow
-        var icon名称: String {
+        var iconName: String {
             self == .ascending ? "arrowtriangle.up.fill" : "arrowtriangle.down.fill"
         }
 
         /// Display text
-        var display名称: String {
+        var displayName: String {
             self == .ascending ? "升序" : "降序"
         }
     }
@@ -61,7 +61,7 @@ final class DashboardViewModel {
         case agent = "Agent 数量"
 
         /// Each sort order corresponds to an SF Symbol icon
-        var icon名称: String {
+        var iconName: String {
             switch self {
             case .name: return "textformat.abc"
             case .scope: return "scope"
@@ -105,24 +105,24 @@ final class DashboardViewModel {
         let ascending = sortDirection == .ascending
         switch sortOrder {
         case .name:
-            result.sort {
+            result.sort(by: {
                 ascending
-                    ? $0.display名称.lowercased() < $1.display名称.lowercased()
-                    : $0.display名称.lowercased() > $1.display名称.lowercased()
-            }
+                    ? $0.displayName.lowercased() < $1.displayName.lowercased()
+                    : $0.displayName.lowercased() > $1.displayName.lowercased()
+            })
         case .scope:
-            result.sort {
+            result.sort(by: {
                 ascending
-                    ? $0.scope.display名称 < $1.scope.display名称
-                    : $0.scope.display名称 > $1.scope.display名称
-            }
+                    ? $0.scope.displayName < $1.scope.displayName
+                    : $0.scope.displayName > $1.scope.displayName
+            })
         case .agent:
             // Agent 数量 defaults to descending (most first) for better visibility
-            result.sort {
+            result.sort(by: {
                 ascending
                     ? $0.installations.count < $1.installations.count
                     : $0.installations.count > $1.installations.count
-            }
+            })
         }
 
         return result

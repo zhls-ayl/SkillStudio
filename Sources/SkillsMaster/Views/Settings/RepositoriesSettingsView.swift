@@ -125,8 +125,8 @@ private struct RepositoryRowView: View {
 
             // Last synced timestamp or "Never"
             VStack(alignment: .trailing, spacing: 2) {
-                if let date = repo.effectiveLast同步edAt {
-                    Text("同步ed")
+                if let date = repo.effectiveLastSyncedAt {
+                    Text("Synced")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                     TimelineView(.periodic(from: .now, by: 60)) { context in
@@ -187,7 +187,7 @@ private struct RepositoryRowView: View {
     /// Small inline sync status indicator
     @ViewBuilder
     private var syncStatusView: some View {
-        let status = skillManager.repo同步Statuses[repo.id] ?? .idle
+        let status = skillManager.repoSyncStatuses[repo.id] ?? .idle
         switch status {
         case .idle:
             EmptyView()
@@ -631,7 +631,7 @@ struct AddRepositorySheet: View {
             authType: authType,
             platform: SkillRepository.platformFrom(repoURL: url),
             isEnabled: true,
-            last同步edAt: nil,
+            lastSyncedAt: nil,
             localSlug: SkillRepository.slugFrom(repoURL: url),
             httpUsername: authType == .httpsToken ? (username.isEmpty ? nil : username) : nil,
             credentialKey: credentialKey,

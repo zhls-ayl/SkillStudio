@@ -1,17 +1,17 @@
 import SwiftUI
 
-/// Skill安装View is the F10 (one-click install) dialog interface
+/// SkillInstallView is the F10 (one-click install) dialog interface
 ///
 /// Two-step process:
 /// 1. Enter GitHub repository URL → click "Scan" to scan
 /// 2. Select skills to install and target Agent → click "安装" to install
 ///
 /// Uses `.sheet()` to popup from SidebarView, automatically cleans up temp directory on close
-struct Skill安装View: View {
+struct SkillInstallView: View {
 
     /// ViewModel manages installation process state
     /// @Bindable allows @Observable object properties to create Binding (two-way binding)
-    @Bindable var viewModel: Skill安装ViewModel
+    @Bindable var viewModel: SkillInstallViewModel
 
     /// Get dismiss action from environment, used to close sheet
     /// @Environment(\.dismiss) is SwiftUI's standard way to close currently presented view (sheet/popover, etc.)
@@ -222,7 +222,7 @@ struct Skill安装View: View {
                     LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), alignment: .leading)], alignment: .leading, spacing: 8) {
                         // ForEach iterates through all detected Agents
                         ForEach(AgentType.allCases) { agentType in
-                            let isDetected = skillManager.agents.first { $0.type == agentType }?.is安装ed == true
+                            let isDetected = skillManager.agents.first { $0.type == agentType }?.isInstalled == true
                             // Toggle is macOS switch/checkbox component
                             Toggle(isOn: Binding(
                                 get: { viewModel.selectedAgents.contains(agentType) },
@@ -244,7 +244,7 @@ struct Skill安装View: View {
                 // 安装 button
                 HStack {
                     // Selected count hint
-                    let 已选择Count = viewModel.selectedSkillNames.count
+                    let selectedCount = viewModel.selectedSkillNames.count
                     Text("\(selectedCount) skill\(selectedCount == 1 ? "" : "s") 已选择")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -293,7 +293,7 @@ struct Skill安装View: View {
             HStack(spacing: 12) {
                 if viewModel.isLocalSource {
                     Button("返回选择页") {
-                        viewModel.backToSelectionForLocal安装()
+                        viewModel.backToSelectionForLocalInstall()
                     }
                 } else {
                     // "安装 More" button: reset state and start over
@@ -344,7 +344,7 @@ struct Skill安装View: View {
     /// Skill list row: checkbox + name + description + "Already installed" badge
     @ViewBuilder
     private func skillRow(_ skill: GitService.DiscoveredSkill) -> some View {
-        let isAlready安装ed = viewModel.already安装edNames.contains(skill.id)
+        let isAlreadyInstalled = viewModel.alreadyInstalledNames.contains(skill.id)
 
         HStack {
             // Checkbox
@@ -356,7 +356,7 @@ struct Skill安装View: View {
                 EmptyView()
             }
             .toggleStyle(.checkbox)
-            .disabled(isAlready安装ed)
+            .disabled(isAlreadyInstalled)
 
             // Skill info
             VStack(alignment: .leading, spacing: 2) {
@@ -366,7 +366,7 @@ struct Skill安装View: View {
                         .fontWeight(.medium)
 
                     // "Already installed" badge
-                    if isAlready安装ed {
+                    if isAlreadyInstalled {
                         Text("安装ed")
                             .font(.caption2)
                             .padding(.horizontal, 6)
@@ -389,6 +389,6 @@ struct Skill安装View: View {
             Spacer()
         }
         // Row opacity: installed skills have reduced opacity
-        .opacity(isAlready安装ed ? 0.6 : 1.0)
+        .opacity(isAlreadyInstalled ? 0.6 : 1.0)
     }
 }

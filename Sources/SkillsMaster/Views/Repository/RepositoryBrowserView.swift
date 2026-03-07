@@ -72,7 +72,7 @@ struct RepositoryBrowserView: View {
             viewModel.installVM?.cleanup()
             viewModel.installVM = nil
         }) { vm in
-            Skill安装View(viewModel: vm)
+            SkillInstallView(viewModel: vm)
                 .environment(skillManager)
         }
     }
@@ -247,10 +247,10 @@ struct RepositoryBrowserView: View {
                 // Each row is a button that selects the skill for the detail pane
                 RepositorySkillRowView(
                     skill: skill,
-                    is安装ed: viewModel.is安装ed(skill),
-                    is安装Enabled: viewModel.can安装FromLocal,
+                    isInstalled: viewModel.isInstalled(skill),
+                    isInstallEnabled: viewModel.canInstallFromLocal,
                     installDisabledReason: viewModel.installDisabledReason,
-                    on安装: { viewModel.installSkill(skill) }
+                    onInstall: { viewModel.installSkill(skill) }
                 )
                 // .tag associates this row with the skill ID for List selection tracking
                 .tag(skill.id)
@@ -270,10 +270,10 @@ struct RepositoryBrowserView: View {
 private struct RepositorySkillRowView: View {
 
     let skill: GitService.DiscoveredSkill
-    let is安装ed: Bool
-    let is安装Enabled: Bool
+    let isInstalled: Bool
+    let isInstallEnabled: Bool
     let installDisabledReason: String?
-    let on安装: () -> Void
+    let onInstall: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
@@ -286,7 +286,7 @@ private struct RepositorySkillRowView: View {
                         .lineLimit(1)
 
                     // "安装ed" badge — same green capsule style as RegistrySkillRowView
-                    if is安装ed {
+                    if isInstalled {
                         Text("安装ed")
                             .font(.caption2)
                             .padding(.horizontal, 6)
@@ -311,18 +311,18 @@ private struct RepositorySkillRowView: View {
 
             // 安装 button
             Button("安装") {
-                on安装()
+                onInstall()
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
-            .disabled(is安装ed || !is安装Enabled)
+            .disabled(isInstalled || !isInstallEnabled)
             .help(installHelpText)
         }
         .padding(.vertical, 4)
     }
 
     private var installHelpText: String {
-        if is安装ed { return "Already installed" }
+        if isInstalled { return "Already installed" }
         if let installDisabledReason { return installDisabledReason }
         return "安装 this skill from local repository clone"
     }
