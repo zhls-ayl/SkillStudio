@@ -324,4 +324,82 @@ final class GitServiceTests: XCTestCase {
         """.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
+    /// 验证 git working tree 干净时不会误报 dirty。
+    func testIsWorkingTreeDirtyReturnsFalseForCleanRepository() async throws {
+        let fm = FileManager.default
+        let repoDir = fm.temporaryDirectory.appendingPathComponent("SkillsMaster-git-clean-\(UUID().uuidString)")
+        defer { try? fm.removeItem(at: repoDir) }
+
+        try fm.createDirectory(at: repoDir, withIntermediateDirectories: true)
+        try runGit(arguments: ["init"], in: repoDir)
+        try runGit(arguments: ["config", "user.name", "SkillsMaster Tests"], in: repoDir)
+        try runGit(arguments: ["config", "user.email", "tests@example.com"], in: repoDir)
+
+        try "initial".write(
+            to: repoDir.appendingPathComponent("README.md"),
+            atomically: true,
+            encoding: .utf8
+        )
+        try runGit(arguments: ["add", "README.md"], in: repoDir)
+        try runGit(arguments: ["commit", "-m", "Initial commit"], in: repoDir)
+
+        let gitService = GitService()
+        let isDirty = try await gitService.isWorkingTreeDirty(in: repoDir)
+        XCTAssertFalse(isDirty)
+    }
+
+    /// 验证 tracked / untracked 改动都会让 custom repository 缓存失效。
+    func testIsWorkingTreeDirtyReturnsTrueForTrackedAndUntrackedChanges() async throws {
+        let fm = FileManager.default
+        let repoDir = fm.temporaryDirectory.appendingPathComponent("SkillsMaster-git-dirty-\(UUID().uuidString)")
+        defer { try? fm.removeItem(at: repoDir) }
+
+        try fm.createDirectory(at: repoDir, withIntermediateDirectories: true)
+        try runGit(arguments: ["init"], in: repoDir)
+        try runGit(arguments: ["config", "user.name", "SkillsMaster Tests"], in: repoDir)
+        try runGit(arguments: ["config", "user.email", "tests@example.com"], in: repoDir)
+
+        let trackedFile = repoDir.appendingPathComponent("tracked.txt")
+        try "v1".write(to: trackedFile, atomically: true, encoding: .utf8)
+        try runGit(arguments: ["add", "tracked.txt"], in: repoDir)
+        try runGit(arguments: ["commit", "-m", "Initial commit"], in: repoDir)
+
+        let gitService = GitService()
+
+        try "v2".write(to: trackedFile, atomically: true, encoding: .utf8)
+        var isDirty = try await gitService.isWorkingTreeDirty(in: repoDir)
+        XCTAssertTrue(isDirty)
+
+        try runGit(arguments: ["checkout", "--", "tracked.txt"], in: repoDir)
+        try "temp".write(
+            to: repoDir.appendingPathComponent("untracked.txt"),
+            atomically: true,
+            encoding: .utf8
+        )
+        isDirty = try await gitService.isWorkingTreeDirty(in: repoDir)
+        XCTAssertTrue(isDirty)
+    }
+
+    private func runGit(arguments: [String], in directory: URL) throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+        process.arguments = arguments
+        process.currentDirectoryURL = directory
+
+        let stdout = Pipe()
+        let stderr = Pipe()
+        process.standardOutput = stdout
+        process.standardError = stderr
+
+        try process.run()
+        process.waitUntilExit()
+
+        guard process.terminationStatus == 0 else {
+            let stderrData = stderr.fileHandleForReading.readDataToEndOfFile()
+            let message = String(data: stderrData, encoding: .utf8) ?? ""
+            XCTFail("git \(arguments.joined(separator: " ")) failed: \(message)")
+            return
+        }
+    }
+
 }

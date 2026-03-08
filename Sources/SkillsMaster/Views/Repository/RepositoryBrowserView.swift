@@ -22,6 +22,11 @@ struct RepositoryBrowserView: View {
             repoHeader
             Divider()
 
+            if let notice = viewModel.scanNoticeMessage {
+                scanNoticeBanner(message: notice)
+                Divider()
+            }
+
             // Main content area
             if viewModel.isLoading && viewModel.allSkills.isEmpty {
                 loadingView
@@ -162,6 +167,22 @@ struct RepositoryBrowserView: View {
             .disabled(viewModel.isSyncing)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func scanNoticeBanner(message: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "info.circle")
+                .foregroundStyle(.blue)
+
+            Text(message)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color.blue.opacity(0.06))
     }
 
     /// State when the repository is cloned but contains no SKILL.md files

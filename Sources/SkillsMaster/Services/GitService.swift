@@ -144,6 +144,18 @@ actor GitService {
         return hash
     }
 
+    /// 检查 repository working tree 是否存在未提交改动。
+    ///
+    /// 这里把 tracked / untracked 文件都视为 dirty，避免将 custom repository 的本地 clone
+    /// 误当成可安全复用缓存的只读镜像。
+    func isWorkingTreeDirty(in repoDir: URL) async throws -> Bool {
+        let output = try await runGitCommand(
+            arguments: ["status", "--porcelain", "--untracked-files=all"],
+            workingDirectory: repoDir
+        )
+        return !output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     /// 在 git history 中查找“产生指定 tree hash 的 commit”，用于给旧 skill 回填 commit hash。
     ///
     /// - Parameters:

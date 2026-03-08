@@ -12,6 +12,26 @@ import Foundation
 /// 这也是本项目中 `LockFileManager`、`GitService` 等组件采用的同一模式。
 actor RepositoryManager {
 
+    enum ScanCacheStatus: Equatable {
+        case hit
+        case miss
+        case bypassedDirtyWorkingTree
+
+        var noticeMessage: String? {
+            switch self {
+            case .bypassedDirtyWorkingTree:
+                return "检测到本地 clone 有未提交改动，本次已跳过仓库索引缓存。建议在原始工作区提交后再通过 Sync 拉取。"
+            case .hit, .miss:
+                return nil
+            }
+        }
+    }
+
+    struct ScanResult {
+        let skills: [GitService.DiscoveredSkill]
+        let cacheStatus: ScanCacheStatus
+    }
+
     // MARK: - Error Types
 
     enum RepositoryError: Error, LocalizedError {
@@ -182,13 +202,23 @@ actor RepositoryManager {
     /// - Parameter repo: The repository to scan (must be cloned locally)
     /// - Returns: Array of discovered skills (empty if repo is not cloned)
     func scanSkills(in repo: SkillRepository) async -> [GitService.DiscoveredSkill] {
-        guard repo.isCloned else { return [] }
+        let result = await scanSkillsResult(in: repo)
+        return result.skills
+    }
+
+    /// Scan a cloned repository and return cache usage status for UI hints.
+    func scanSkillsResult(in repo: SkillRepository) async -> ScanResult {
+        guard repo.isCloned else {
+            return ScanResult(skills: [], cacheStatus: .miss)
+        }
         let repoDir = URL(fileURLWithPath: repo.localPath)
 
         let headCommit = try? await gitService.getCommitHash(in: repoDir)
-        if let headCommit,
+        let isDirty = (try? await gitService.isWorkingTreeDirty(in: repoDir)) ?? true
+        if !isDirty,
+           let headCommit,
            let cached = await repositoryScanCache.getSkills(for: repo, headCommit: headCommit) {
-            return cached
+            return ScanResult(skills: cached, cacheStatus: .hit)
         }
 
         let skills = await gitService.scanSkillsInRepo(
@@ -196,11 +226,14 @@ actor RepositoryManager {
             includeHiddenPaths: repo.scanHiddenPaths
         )
 
-        if let headCommit {
+        if !isDirty, let headCommit {
             try? await repositoryScanCache.saveSkills(skills, for: repo, headCommit: headCommit)
         }
 
-        return skills
+        return ScanResult(
+            skills: skills,
+            cacheStatus: isDirty ? .bypassedDirtyWorkingTree : .miss
+        )
     }
 
     /// Load the full content for a single discovered skill from the local clone.

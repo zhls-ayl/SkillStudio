@@ -56,6 +56,9 @@ final class RepositoryBrowserViewModel {
     /// Error message (nil = no error)
     var errorMessage: String?
 
+    /// Informational notice for repository scan behavior, e.g. cache bypass.
+    var scanNoticeMessage: String?
+
     /// Currently selected skill (drives the detail pane in ContentView)
     var selectedSkillID: String? {
         didSet {
@@ -155,10 +158,14 @@ final class RepositoryBrowserViewModel {
         isLoading = true
         if overrideError == nil { errorMessage = nil }
 
-        let skills = await skillManager.repositoryManager.scanSkills(in: repository)
+        let scanResult = await skillManager.repositoryManager.scanSkillsResult(in: repository)
+        await applyScanResult(scanResult, overrideError: overrideError)
+    }
 
+    func applyScanResult(_ scanResult: RepositoryManager.ScanResult, overrideError: String? = nil) async {
         contentCache.removeAll()
-        allSkills = skills
+        allSkills = scanResult.skills
+        scanNoticeMessage = scanResult.cacheStatus.noticeMessage
         isLoading = false
 
         if let selectedSkillID,

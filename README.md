@@ -61,5 +61,9 @@ swift test
 
 如果你准备参与开发，先读 `docs/Index.md`；如果你准备在仓库里执行修改，再读 `AGENTS.md`。
 
+## Custom Repository 说明
+- `~/.skillsmaster/repos` 是 SkillsMaster 维护的 custom repository 本地 clone / cache 目录，不是推荐的手动编辑工作区。
+- 如果你需要修改 Repository 内容，请优先在原始仓库工作区提交并通过 Sync 拉取；应用检测到本地 clone 有未提交改动时，会跳过扫描缓存以避免显示过期索引。
+
 ## 界面预览
 ![SkillsMaster 界面截图](docs/screenshots/skill-detail.png)
